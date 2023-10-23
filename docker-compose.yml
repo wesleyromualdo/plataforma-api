@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+    postgresql:
+        image: postgres:14.4 
+        container_name: "postgres"
+        ports:
+            - "5432:5432"
+        environment:
+            POSTGRES_PASSWORD: "bot!solve!"
+            POSTGRES_USER: "botsolve"
+            POSTGRES_DB: "SolveAutomation"
+        volumes:
+            - "./docker_config/postgresql/pgdata:/var/lib/postgresql/pgdata"
+        networks:
+            - console-compose-network
+    
+    python:
+        image: python:3.8.5
+        build:
+            context: ./consoleapi
+            dockerfile: Dockerfile
+        #command: "sh -c 'pip install -r requirements.txt && python script.py'"
+        volumes:
+            - .:/app
+
+    node:
+        image: node:16.15.1
+        build:
+            context: ./consoleweb
+            dockerfile: Dockerfile
+        container_name: nodejs
+        restart: unless-stopped
+        volumes:
+            - .:/home/node/app
+            #- node_modules:/home/node/app/node_modules
+        ports:
+            - "8080:4200"
+        networks:
+            - console-compose-network
+        #command: "npm install && npm install -g @angular/cli && ng serve --open --host 0.0.0.0 --port 4200 --disable-host-check"
+        
+volumes:
+    db_volume:
+        external: false
+networks:
+    console-compose-network:
+        driver: bridge

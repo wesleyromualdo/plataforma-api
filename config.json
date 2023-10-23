@@ -1,0 +1,24 @@
+{
+    "conexao_dev": {
+        "host": "54.94.12.249",
+        "database": "botsolve",
+        "user": "postgres",
+        "porta": 5432,
+        "password": "Solve2022!"
+    },
+    "conexao": {
+        "host": "rpa-dsv-postgres.api.zello.services",
+        "database": "SolveAutomation",
+        "porta": 5446,
+        "user": "botsolve",
+        "password": "bot!solve!"
+    },
+    "url_console": "https://consoleapi-dsv.api.zello.services",
+    "config_email": {
+        "fromaddr": "roborpabsb@gmail.com",
+        "password": "radoeyyqwuhtainh",
+        "host": "smtp.gmail.com",
+        "port": "587",
+        "cc":""
+    }
+}

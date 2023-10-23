@@ -1,0 +1,23 @@
+/venv
+/docker_config
+/.vscode
+/alembic
+/logs
+/automacoes
+/executores
+/alembic.ini
+build/
+dist/
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
