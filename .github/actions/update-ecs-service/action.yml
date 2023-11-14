@@ -1,0 +1,71 @@
+name: 'Build docker images'
+description: 'Build docker images and push it to AWS ECR>.'
+inputs:
+  aws_iam_role:
+    description: ''
+    required: true
+  aws_region:
+    default: us-east-1
+    description: ''
+    required: false
+  ecr_url:
+    description: 'AWS ECR URL'
+    required: true
+  ecs_service:
+    description: ''
+    required: true
+  ecs_cluster:
+    description: ''
+    required: true
+  env_file:
+    description: ''
+    required: true
+  version:
+    description: ''
+    required: true
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: us-east-1
+        role-to-assume: ${{ inputs.aws_iam_role }}
+
+    - uses: extractions/setup-just@v1
+      with:
+        just-version: '1.13.0'
+
+    - name: pull-ecs-env-merger
+      shell: bash
+      run: |
+        just pull-ecs-env-merger
+        chmod +x ecs-env-merger
+        sudo mv ecs-env-merger /usr/local/bin/ecs-env-merger
+
+    - name: Configure task Definition
+      id: render-app-container
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.ecr_url }}
+        ECS_SERVICE: ${{ inputs.ecs_service }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        just render-ecs-task-definition
+
+    - name: merge envfile with ecs task
+      shell: bash
+      run: |
+        ecs-env-merger --mode merge --env-file ${{ inputs.env_file }} --task-definition-file task_definition.json
+
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: merged_task_definition.json
+        service: ${{ inputs.ecs_service }}
+        cluster: ${{ inputs.ecs_cluster }}
+        wait-for-service-stability: true
+        wait-for-minutes: 5
+        force-new-deployment: true
