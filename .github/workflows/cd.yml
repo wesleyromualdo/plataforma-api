@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  ECS_SERVICE: ${{ fromJson('{"develop":"staging-plataforma", "main":"staging-code-review-api"}')[github.ref_name] }}
+  ECS_SERVICE: ${{ fromJson('{"develop":"staging-plataforma", "main":"production-plataforma"}')[github.ref_name] }}
   ECS_CLUSTER: plataforma-cluster
   AWS_REGION: ${{ secrets.AWS_REGION }}
   AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
