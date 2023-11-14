@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  api:
+    image: ${IMAGE:-shu}:${VERSION:-latest}
+    platform: "linux/amd64"
+    build:
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: ${NODE_ENV:-production}
+      context: .
+      target: image-with-modules-and-app

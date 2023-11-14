@@ -15,13 +15,14 @@ permissions:
   contents: read
 
 env:
-  ENV_PREFIX: ${{ fromJson('{"develop":"","main":"PRD_", "pipeline/add-new-account-support-for-prd":"PRD_"}')[github.ref_name] }}
-  ECS_SERVICE: ${{ fromJson('{"develop":"staging-plataforma","main":"production-plataforma"}')[github.ref_name] }}
+  ECS_SERVICE: ${{ fromJson('{"develop":"staging-plataforma", "main":"staging-code-review-api"}')[github.ref_name] }}
   ECS_CLUSTER: plataforma-cluster
   AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
   AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
   ENV_FILE: ${{ fromJson('{"develop":"deploy/staging.env", "main":"deploy/production.env"}')[github.ref_name] }}
   VERSION: app-${{ github.sha }}
+  AWS_ROLE_ARN: ${{ secrets.PRD_AWS_ROLE_ARN }}
  
  
 jobs:
@@ -32,29 +33,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set Env
-        run: |
-          echo ${{env.ENV_PREFIX}}
-          export AWS_ACCOUNT=${{ secrets[format('{0}AWS_ACCOUNT', env.ENV_PREFIX)] }}
-          export AWS_REGION=${{ secrets[format('{0}AWS_REGION', env.ENV_PREFIX)] }}
-          export AWS_ROLE_ARN=${{ secrets[format('{0}AWS_ROLE_ARN', env.ENV_PREFIX)] }}
-          echo "AWS_ACCOUNT=$AWS_ACCOUNT" >> $GITHUB_ENV
-          echo "AWS_REGION=$AWS_REGION" >> $GITHUB_ENV
-          echo "AWS_ROLE_ARN=$AWS_ROLE_ARN" >> $GITHUB_ENV
-          echo $AWS_ROLE_ARN >> secrets.txt
-          cat secrets.txt
-          echo "ECR_URL=$AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/${{env.ECS_SERVICE}}" >> $GITHUB_ENV
-
-      # - name: Run tmate
-      #   uses: mxschmitt/action-tmate@v2
-
       - name: Build and send images to AWS
         id: build-docker-images
         uses: ./.github/actions/build-docker-images
         with:
           aws_iam_role: ${{ env.AWS_ROLE_ARN }}
           aws_region: ${{ env.AWS_REGION }}
-          ecr_url: ${{ env.ECR_URL }}
+          ecr_url: ${{ env.AWS_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECS_SERVICE }}
+
 
   deploy-ecs-task:
     runs-on: ubuntu-latest
@@ -64,32 +50,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set Env
-        run: |
-          export AWS_REGION=${{ secrets[format('{0}AWS_REGION', env.ENV_PREFIX)] }}
-          export AWS_ACCOUNT=${{ secrets[format('{0}AWS_ACCOUNT', env.ENV_PREFIX)] }}
-          export AWS_ROLE_ARN=${{ secrets[format('{0}AWS_ROLE_ARN', env.ENV_PREFIX)] }}
-          echo "AWS_REGION=$AWS_REGION" >> $GITHUB_ENV
-          echo "AWS_ACCOUNT=$AWS_ACCOUNT" >> $GITHUB_ENV
-          echo "AWS_ROLE_ARN=$AWS_ROLE_ARN" >> $GITHUB_ENV
-          echo AWS_ROLE_ARN
-          echo "ECR_URL=$AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/${{env.ECS_SERVICE}}" >> $GITHUB_ENV
-
       - name: Update ECS Service
         id: update-ecs-service
         uses: ./.github/actions/update-ecs-service
         with:
           aws_iam_role: ${{ env.AWS_ROLE_ARN }}
           aws_region: ${{ env.AWS_REGION }}
-          ecr_url: ${{ env.ECR_URL }}
+          ecr_url: ${{ env.AWS_ACCOUNT }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECS_SERVICE }}
           ecs_service: ${{ env.ECS_SERVICE }}
           ecs_cluster: ${{ env.ECS_CLUSTER }}
           env_file: ${{ env.ENV_FILE }}
           version: ${{ env.VERSION }}
-
-      - name: Slack Notification
-        if: always()
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_COLOR: "${{ job.status == 'success' && 'good' || 'danger' }}"
