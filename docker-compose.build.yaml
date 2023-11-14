@@ -9,4 +9,4 @@ services:
       args:
         API_ENVIRONMENT: ${API_ENVIRONMENT:-production}
       context: .
-      target: image-with-modules-and-app
+      target: build-app-image
