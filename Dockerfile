@@ -9,6 +9,8 @@ RUN python -m pip install -r requirements.txt --no-cache-dir
  
 COPY . .
 
+ENV API_ENVIRONMENT development
+
 RUN python script.py
 
 EXPOSE 8000
