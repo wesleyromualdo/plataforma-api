@@ -22,7 +22,7 @@ env:
   AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
   ENV_FILE: ${{ fromJson('{"develop":"deploy/staging.env", "main":"deploy/production.env"}')[github.ref_name] }}
   VERSION: app-${{ github.sha }}
-  AWS_ROLE_ARN: ${{ secrets.PRD_AWS_ROLE_ARN }}
+  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
  
  
 jobs:
