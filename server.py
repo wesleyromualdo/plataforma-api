@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 
 from src.routers import (route_auth, route_dados_negocial, route_executor, route_logs, route_menu, 
     route_perfil, route_setor, route_tarefa, route_usuario, route_automacao, route_util, route_script,
@@ -161,6 +162,10 @@ app.include_router(route_cofresenha.router)
 async def send_notification(email: str, background_tasks: BackgroundTasks):
     background_tasks.add_task(write_notification, email, message="Teste de e-mail")
     return {"message": "Mensagem Enviada."}
+
+@app.get("/health", response_class=PlainTextResponse)
+def healthcheck():
+    return "200"
 
 # Middlewares
 @app.middleware('http')
