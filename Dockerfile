@@ -13,5 +13,5 @@ ENV API_ENVIRONMENT development
 
 RUN python script.py
 
-EXPOSE 8000
-CMD python -m uvicorn server:app --host 0.0.0.0 --reload --reload-dir=src
+EXPOSE 3000
+CMD python -m uvicorn server:app --host 0.0.0.0 --port 3000 --reload --reload-dir=src
