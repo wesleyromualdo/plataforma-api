@@ -6,10 +6,10 @@ class Configuracao():
 
     def __init__(self):
       try:
-        #os.system("alembic init alembic")
-        #shutil.copy('env_alembic.py', 'alembic/env.py')
-        #os.system('alembic revision --autogenerate -m "Criando tabelas no banco de dados"')
-        #os.system('alembic upgrade head')
+        os.system("alembic init alembic")
+        shutil.copy('env_alembic.py', 'alembic/env.py')
+        os.system('alembic revision --autogenerate -m "Criando tabelas no banco de dados"')
+        os.system('alembic upgrade head')
 
         self.conecta_db()
       except Exception as erro:
@@ -25,6 +25,7 @@ class Configuracao():
 
     def inserir_db(self):
         try:
+            #admin@solve
             sql = "INSERT INTO public.usuario(nu_cpf, tx_nome, tx_senha, tx_email, bo_status, dt_inclusao) VALUES('00000000191', 'Administrador Automaxia', '$2b$12$rfnrdFhgKa7RDiXtxTidU.s5k4yj5W4pFRyg5Zh8w2uzPsNkO92qq', 'roborpabsb@gmail.com', true, now());"
             self.cur.execute(sql)
 
