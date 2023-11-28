@@ -1,15 +1,15 @@
 import os
 import psycopg2
-import shutil
+import shutil, traceback
 
 class Configuracao():
 
     def __init__(self):
       try:
-        os.system("alembic init alembic")
-        shutil.copy('env_alembic.py', 'alembic/env.py')
-        os.system('alembic revision --autogenerate -m "Criando tabelas no banco de dados"')
-        os.system('alembic upgrade head')
+        #os.system("alembic init alembic")
+        #shutil.copy('env_alembic.py', 'alembic/env.py')
+        #os.system('alembic revision --autogenerate -m "Criando tabelas no banco de dados"')
+        #os.system('alembic upgrade head')
 
         self.conecta_db()
       except Exception as erro:
@@ -17,21 +17,24 @@ class Configuracao():
         print(erro)
 
     def conecta_db(self):
-        self.con = psycopg2.connect(host='localhost', port="5434", database='SolveAutomation', user='botsolve', password='bot!solve!')
+      try:
+        self.con = psycopg2.connect(host='production-plataforma-api.cluster-ceikcskujn3o.us-east-1.rds.amazonaws.com', port="5432", database='plataforma', user='usr_plataforma', password='0503b06b-8a2f-e5aa-4f7f-ad5a5a03fffc')
         self.cur = self.con.cursor()
+      except:
+        print(traceback.format_exc())
 
     def inserir_db(self):
         try:
-            sql = "INSERT INTO public.usuario(nu_cpf, tx_nome, tx_senha, tx_email, bo_status, dt_inclusao) VALUES('00000000191', 'Administrador Solve', '$2b$12$rfnrdFhgKa7RDiXtxTidU.s5k4yj5W4pFRyg5Zh8w2uzPsNkO92qq', 'roborpabsb@gmail.com', true, now());"
+            sql = "INSERT INTO public.usuario(nu_cpf, tx_nome, tx_senha, tx_email, bo_status, dt_inclusao) VALUES('00000000191', 'Administrador Automaxia', '$2b$12$rfnrdFhgKa7RDiXtxTidU.s5k4yj5W4pFRyg5Zh8w2uzPsNkO92qq', 'roborpabsb@gmail.com', true, now());"
             self.cur.execute(sql)
 
-            sql = "INSERT INTO public.setor(tx_sigla, tx_nome, bo_status) VALUES('Solve', 'Área responsável pela execução e configuração inicial da ferramenta', true);"
+            sql = "INSERT INTO public.setor(tx_sigla, tx_nome, bo_status) VALUES('Automaxia', 'Área responsável pela execução e configuração inicial da ferramenta', true);"
             self.cur.execute(sql)
 
             sql = "INSERT INTO public.perfil(tx_nome, tx_finalidade, bo_superuser, bo_status) VALUES('Administrador', 'Responsável gerir os cadastros e configuração da ferramenta', true, true);"
             self.cur.execute(sql)
 
-            sql = "INSERT INTO public.usuario_setor(nu_cpf, setor_id) VALUES('00000000191', (SELECT id FROM setor s WHERE tx_sigla = 'Solve'));"
+            sql = "INSERT INTO public.usuario_setor(nu_cpf, setor_id) VALUES('00000000191', (SELECT id FROM setor s WHERE tx_sigla = 'Automaxia'));"
             self.cur.execute(sql)
 
             sql = "INSERT INTO public.perfil_usuario(nu_cpf, perfil_id) VALUES('00000000191', (SELECT id FROM public.perfil WHERE tx_nome = 'Administrador'));"
@@ -47,7 +50,7 @@ INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_statu
             """
             self.cur.execute(sql)
 
-            sql = "INSERT INTO public.perfil_menu(menu_id, perfil_id, setor_id) (SELECT id, (SELECT id FROM public.perfil WHERE tx_nome = 'Administrador'), (SELECT id FROM public.setor WHERE tx_sigla = 'Solve') FROM public.menu);"
+            sql = "INSERT INTO public.perfil_menu(menu_id, perfil_id, setor_id) (SELECT id, (SELECT id FROM public.perfil WHERE tx_nome = 'Administrador'), (SELECT id FROM public.setor WHERE tx_sigla = 'Automaxia') FROM public.menu);"
             self.cur.execute(sql)
 
             sql = """CREATE OR REPLACE FUNCTION public.removeacento(character varying)
@@ -125,4 +128,4 @@ AS $function$
         self.cur.close()
 
 ob = Configuracao()
-#retorno = ob.inserir_db()
+retorno = ob.inserir_db()

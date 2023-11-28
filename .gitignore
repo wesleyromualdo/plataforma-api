@@ -14,7 +14,6 @@ dist/
 __pycache__/
 
 # Environments
-.env
 .venv
 env/
 venv/
