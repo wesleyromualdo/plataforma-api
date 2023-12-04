@@ -89,8 +89,9 @@ origins = [
     "http://localhost",
     "http://localhost:8080",
     "http://localhost:4200",
-    "https://consoleweb-dsv.api.zello.services",
-    "http://consoleweb-dsv.api.zello.services/"
+    "https://plataforma.automaxia.com.br",
+    "https://plataforma.automaxia.com.br/",
+    "http://plataforma.automaxia.com.br/"
 ]
 app.add_middleware(
     CORSMiddleware,
