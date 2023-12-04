@@ -6,7 +6,7 @@ valores = string.ascii_letters
 senha = ''
 for i in range(tamanho):
     senha += random.choice(valores)
-print('Solver@'+senha)
+print('Automaxia@'+senha)
 
 #Natália Sampaio Sene Fernandes
 #228.969.748-65

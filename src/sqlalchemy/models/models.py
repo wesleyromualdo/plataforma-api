@@ -165,7 +165,7 @@ class Tarefa(Base):
     nu_prioridade = Column(Integer, server_default='1', default='1')
     tx_json = Column(Text)
     tx_constante_virtual = Column(String(100))
-    anexo_script_id = Column(Integer, ForeignKey('anexo_script.id', name='fk_tarefa_anexo_script'))
+    anexo_script_id = Column(Integer)
     #automacao = relationship('Automacao', secondary='automacao', viewonly=True)
     #automacao = relationship('Automacao')
     automacao = relationship('Automacao', back_populates='tarefa')
@@ -175,7 +175,7 @@ class AnexoScript(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     tarefa_id = Column(Integer, ForeignKey('tarefa.id', name='fk_tarefa_anexo_script'))
-    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_tarefa_anexo_script'))
+    nu_cpf = Column(String(11))
     tx_nome = Column(String(200))
     tx_extensao = Column(String(50))
     tx_tipo = Column(String(50))

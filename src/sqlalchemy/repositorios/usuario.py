@@ -314,7 +314,7 @@ class RepositorioUsuario():
                                             </a>
                                         </div>
                                         <div style="padding-bottom: 10px; margin-top: 20px;">Obrigado,</div>
-                                        <div style="padding-bottom: 10px;">Equipe Solver</div>
+                                        <div style="padding-bottom: 10px;">Equipe Automaxia</div>
                                         <div style="padding-top: 50px; border-bottom: 2px solid rgb(229, 231, 235);"></div>
                                     </div>
                                 </div>                                
