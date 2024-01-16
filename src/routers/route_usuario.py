@@ -33,12 +33,12 @@ router = APIRouter(tags=['Usuário'], route_class=RouteErrorHandler)
 @router.get("/usuario", status_code=status.HTTP_200_OK)
 async def listar_todos_usuario(nu_cpf: Optional[str] = Query(default=''),
                             tx_nome: Optional[str] = Query(default=None, max_length=200),
-                            setor_id: Optional[int] = Query(default=None),
+                            cliente_id: Optional[int] = Query(default=None),
                             bo_status: Optional[str] = Query(default=None),
                             pagina: Optional[int] = Query(default=0),
                             tamanho_pagina: Optional[int] = Query(default=0),
                             db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
-    return await RepositorioUsuario(db).get_all(nu_cpf, tx_nome, setor_id, bo_status, pagina, tamanho_pagina)
+    return await RepositorioUsuario(db).get_all(nu_cpf, tx_nome, cliente_id, bo_status, pagina, tamanho_pagina)
 
 @router.post("/usuario/", status_code=status.HTTP_201_CREATED)
 async def inserir_usuario(model: schemas.UsuarioPOST, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):

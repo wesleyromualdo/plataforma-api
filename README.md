@@ -7,7 +7,7 @@ Backend da console para execução das automações.
 
 ```
 cd existing_repo
-git remote add origin https://gitlab.zello.services/clientes/rpa/consoleapi.git
+git remote add origin 
 git branch -M main
 git push -uf origin main
 ```
@@ -18,7 +18,7 @@ De que coisas você precisa para instalar o software e como instalá-lo?
 
 ```
 Ter o arquivo console_api.py no diretório raiz da automação.
-    * https://gitlab.zello.services/clientes/rpa/consoleapi/-/blob/develop/console_api.py
+    * 
 ```
 
 ### 🔧 Instalação

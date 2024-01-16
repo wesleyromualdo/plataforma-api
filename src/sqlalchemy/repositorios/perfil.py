@@ -51,14 +51,15 @@ class RepositorioPerfil():
             result = self.db.query(models.Perfil)
             if tx_nome:
                 result = result.filter(models.Perfil.tx_nome == tx_nome)
-                    
-            if str(bo_status):
+
+            if str(bo_status) and bo_status is not None:
                 result = result.filter(models.Perfil.bo_status == bo_status)
             
             if tamanho_pagina > 0:
                 result.offset(pagina).limit(tamanho_pagina)
             
-            result = result.filter(models.Perfil.constante_virtual != 'ROBO_EXECUTOR')
+            result = result.filter(models.Perfil.constante_virtual != 'ROBO_WORKERS')
+            #print(str(result.statement.compile(self.db.bind)))
             return result.all()
         except:
             utc_dt = datetime.now(timezone.utc)
@@ -82,7 +83,7 @@ class RepositorioPerfil():
                 db_menu = models.PerfilMenu(
                     menu_id = menu.id,
                     perfil_id = db_orm.id,
-                    setor_id = menu.setor_id
+                    cliente_id = menu.cliente_id
                 )            
             self.db.add(db_menu)
             self.db.commit()
@@ -111,7 +112,7 @@ class RepositorioPerfil():
                 db_menu = models.PerfilMenu(
                     menu_id = menu.id,
                     perfil_id = orm.id,
-                    setor_id = menu.setor_id
+                    cliente_id = menu.cliente_id
                 )
                 self.db.add(db_menu)
 

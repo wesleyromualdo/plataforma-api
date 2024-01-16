@@ -64,6 +64,6 @@ async def pegar_por_tarefa(tarefa_id: int, db: Session = Depends(get_db), usuari
     return retorno
 
 @router.delete("/controleexecucao/{tarefa_id}", tags=['Controle Execução'], status_code=status.HTTP_200_OK)
-async def apagar_setor(tarefa_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+async def apagar_cliente(tarefa_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     retorno = await RepositorioControleExecucao(db).delete(tarefa_id)
     return retorno

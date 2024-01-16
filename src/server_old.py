@@ -3,15 +3,15 @@ from fastapi import FastAPI, Query, status
 from typing import List, Union
 
 '''from Controllers.MenuController import MenuController
-from Controllers.SetorController import SetorController
+from Controllers.ClienteController import ClienteController
 from Controllers.PerfilController import PerfilController
 from Controllers.UsuarioController import UsuarioController
 from Controllers.AutomacaoController import AutomacaoController'''
 
 tags_metadata = [
     {
-        "name": "Setor",
-        "description": "Este serviço tem o objetivo manter os registros de Setores",
+        "name": "Cliente",
+        "description": "Este serviço tem o objetivo manter os registros de Clientes",
         "docExpansion": True
     },
     {
@@ -28,7 +28,7 @@ tags_metadata = [
     }
 ]
 
-app = FastAPI(title="SOLVE AUTOMATION", openapi_tags=tags_metadata)
+app = FastAPI(title="AUTOMAXIA AUTOMATION", openapi_tags=tags_metadata)
 
 #pip install virtualenv
 #python -m venv env
@@ -44,42 +44,42 @@ def home():
     '''
 '''
 ######################################################################################################################
-#  SETOR                                                                                                             #
+#  Cliente                                                                                                             #
 ######################################################################################################################
-@app.get("/setor", tags=['Setor'])
-async def listar_todos_setores(setid: Union[int, None] = None,
+@app.get("/Cliente", tags=['Cliente'])
+async def listar_todos_Clientees(setid: Union[int, None] = None,
                                 setnome: Union[str, None] = Query(default=None, max_length=200),
                                 setdsc: Union[str, None] = Query(default=None, max_length=500),
                                 setstatus: Union[bool, None] = Query(default=True),
                                 pagina: Union[int, None] = Query(default=0),
                                 tamanho_pagina: Union[int, None] = Query(default=10)):
 
-    setorControl = SetorController()
-    retorno = await setorControl.get_all(setid, setnome, setdsc, setstatus, pagina, tamanho_pagina)
+    ClienteControl = ClienteController()
+    retorno = await ClienteControl.get_all(setid, setnome, setdsc, setstatus, pagina, tamanho_pagina)
     return retorno
 
-@app.get("/setor/{id_setor}", tags=['Setor'])
-async def pegar_setor(id_setor: int):
-    setorControl = SetorController()
-    retorno = await setorControl.get_by_id(id_setor)
+@app.get("/Cliente/{id_Cliente}", tags=['Cliente'])
+async def pegar_Cliente(id_Cliente: int):
+    ClienteControl = ClienteController()
+    retorno = await ClienteControl.get_by_id(id_Cliente)
     return retorno
 
-@app.post("/setor/", tags=['Setor'])
-async def inserir_setor(setor: model.Setor):
-    setorControl = SetorController()
-    retorno = await setorControl.post(setor)
+@app.post("/Cliente/", tags=['Cliente'])
+async def inserir_Cliente(Cliente: model.Cliente):
+    ClienteControl = ClienteController()
+    retorno = await ClienteControl.post(Cliente)
     return retorno
 
-@app.put("/setor/", tags=['Setor'])
-async def atualizar_setor(setor: model.Setor):
-    setorControl = SetorController()
-    retorno = await setorControl.put(setor)
+@app.put("/Cliente/", tags=['Cliente'])
+async def atualizar_Cliente(Cliente: model.Cliente):
+    ClienteControl = ClienteController()
+    retorno = await ClienteControl.put(Cliente)
     return retorno
 
-@app.delete("/setor/{id_setor}", tags=['Setor'])
-async def apagar_setor(id_setor: int):
-    setorControl = SetorController()
-    retorno = await setorControl.delete_by_id(id_setor)
+@app.delete("/Cliente/{id_Cliente}", tags=['Cliente'])
+async def apagar_Cliente(id_Cliente: int):
+    ClienteControl = ClienteController()
+    retorno = await ClienteControl.delete_by_id(id_Cliente)
     return retorno
 ######################################################################################################################
 #  MENU                                                                                                              #
@@ -160,7 +160,7 @@ async def apagar_menu(id_perfil: int):
     retorno = await perfilControl.delete_by_id(id_perfil)
     return retorno
 
-@app.post("/perfil_setor/", tags=['Perfil'])
+@app.post("/perfil_Cliente/", tags=['Perfil'])
 async def inserir_menu(menu: model.Menu):
     perfilControl = PerfilController()
     retorno = await perfilControl.post(menu)

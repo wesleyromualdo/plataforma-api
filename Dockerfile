@@ -11,7 +11,7 @@ COPY . .
 
 ENV API_ENVIRONMENT development
 
-RUN python script.py
+#RUN python script.py
 
 EXPOSE 3000
 CMD python -m uvicorn server:app --host 0.0.0.0 --port 3000 --reload --reload-dir=src

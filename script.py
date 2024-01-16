@@ -25,17 +25,17 @@ class Configuracao():
 
     def inserir_db(self):
         try:
-            #admin@solve
-            sql = "INSERT INTO public.usuario(nu_cpf, tx_nome, tx_senha, tx_email, bo_status, dt_inclusao) VALUES('00000000191', 'Administrador Automaxia', '$2b$12$rfnrdFhgKa7RDiXtxTidU.s5k4yj5W4pFRyg5Zh8w2uzPsNkO92qq', 'roborpabsb@gmail.com', true, now());"
+            #admin@automaxia
+            sql = "INSERT INTO public.usuario(nu_cpf, tx_nome, tx_senha, tx_email, bo_status, dt_inclusao) VALUES('00000000191', 'Administrador Automaxia', '$2b$12$U7nJOqm/AwKu0WuIpx/6weZFQ7bDcxfMsnblhXat31YXqBomPkiV6', 'wesleyromualdo@gmail.com', true, now());"
             self.cur.execute(sql)
 
-            sql = "INSERT INTO public.setor(tx_sigla, tx_nome, bo_status) VALUES('Automaxia', 'Área responsável pela execução e configuração inicial da ferramenta', true);"
+            sql = "INSERT INTO public.cliente(tx_sigla, tx_nome, bo_status) VALUES('Automaxia', 'Área responsável pela execução e configuração inicial da ferramenta', true);"
             self.cur.execute(sql)
 
-            sql = "INSERT INTO public.perfil(tx_nome, tx_finalidade, bo_superuser, bo_status) VALUES('Administrador', 'Responsável gerir os cadastros e configuração da ferramenta', true, true);"
+            sql = "INSERT INTO public.perfil(tx_nome, tx_finalidade, bo_superuser, bo_status, bo_delegar, constante_virtual) VALUES('Administrador', 'Responsável gerir os cadastros e configuração da ferramenta', true, true, true, 'ADMINISTRADOR');"
             self.cur.execute(sql)
 
-            sql = "INSERT INTO public.usuario_setor(nu_cpf, setor_id) VALUES('00000000191', (SELECT id FROM setor s WHERE tx_sigla = 'Automaxia'));"
+            sql = "INSERT INTO public.usuario_cliente(nu_cpf, cliente_id) VALUES('00000000191', (SELECT id FROM cliente s WHERE tx_sigla = 'Automaxia'));"
             self.cur.execute(sql)
 
             sql = "INSERT INTO public.perfil_usuario(nu_cpf, perfil_id) VALUES('00000000191', (SELECT id FROM public.perfil WHERE tx_nome = 'Administrador'));"
@@ -47,11 +47,11 @@ INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_statu
 INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(4000, 'Gestão de usuário', '/usuario', 'group', 4, true);
 INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(5000, 'Cadastro de Módulo', '/modulo', 'view_module', 5, true);
 INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(6000, 'Cadastro de Perfil', '/perfil', 'assignment_ind', 6, true);
-INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(7000, 'Cadastro de Setor', '/setor', 'supervised_user_circle', 7, true);
+INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(7000, 'Cadastro de cliente', '/cliente', 'supervised_user_circle', 7, true);
             """
             self.cur.execute(sql)
 
-            sql = "INSERT INTO public.perfil_menu(menu_id, perfil_id, setor_id) (SELECT id, (SELECT id FROM public.perfil WHERE tx_nome = 'Administrador'), (SELECT id FROM public.setor WHERE tx_sigla = 'Automaxia') FROM public.menu);"
+            sql = "INSERT INTO public.perfil_menu(menu_id, perfil_id, cliente_id) (SELECT id, (SELECT id FROM public.perfil WHERE tx_nome = 'Administrador'), (SELECT id FROM public.cliente WHERE tx_sigla = 'Automaxia') FROM public.menu);"
             self.cur.execute(sql)
 
             sql = """CREATE OR REPLACE FUNCTION public.removeacento(character varying)

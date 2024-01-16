@@ -28,7 +28,7 @@ class RouteErrorHandler(APIRoute):
 router = APIRouter(route_class=RouteErrorHandler)
 
 @router.get("/cofresenha", tags=['Cofre Senha'], status_code=status.HTTP_200_OK, response_model=List[schemas.CofreSenhaLista])
-async def listar_todos(setor_id: Optional[int] = Query(default=None),
+async def listar_todos(cliente_id: Optional[int] = Query(default=None),
                                 tx_nome: Optional[str] = Query(default=None, max_length=300),
                                 tx_usuario: Optional[str] = Query(default=None, max_length=50),
                                 bo_status: Optional[str] = Query(default=None),
@@ -36,14 +36,14 @@ async def listar_todos(setor_id: Optional[int] = Query(default=None),
                                 tamanho_pagina: Optional[int] = Query(default=0), 
                                 db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
 
-    retorno = await RepositorioCofreSenha(db).get_all(setor_id, tx_nome, tx_usuario, bo_status, pagina, tamanho_pagina)
+    retorno = await RepositorioCofreSenha(db).get_all(cliente_id, tx_nome, tx_usuario, bo_status, pagina, tamanho_pagina)
     if not retorno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o(s) filtro(s) informado(s)!')
     return retorno
 
 @router.post("/cofresenha/", tags=['Cofre Senha'], status_code=status.HTTP_201_CREATED, response_model=schemas.CofreSenhaLista)
 async def inserir(model: schemas.CofreSenhaPOST, db: Session = Depends(get_db)):
-    retorno = await RepositorioCofreSenha(db).get_by_nome(model.tx_nome, model.setor_id)
+    retorno = await RepositorioCofreSenha(db).get_by_nome(model.tx_nome, model.cliente_id)
     if retorno:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Já existe um cofre de senha cadastrado com esse Nome: {model.tx_nome} informado!')
 
@@ -60,21 +60,21 @@ async def atualizar(model: schemas.CofreSenha, db: Session = Depends(get_db), us
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Já existe um cofre de senha cadastrado com esse Nome: {model.tx_descricao} informado!')
 
-@router.get("/cofresenha/{tx_nome}/{setor_id}", tags=['Cofre Senha'], status_code=status.HTTP_200_OK, response_model=schemas.CofreSenhaLista)
-async def pegar_por_nome(tx_nome:str, setor_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
-    retorno = await RepositorioCofreSenha(db).get_by_nome(tx_nome, setor_id)
+@router.get("/cofresenha/{tx_nome}/{cliente_id}", tags=['Cofre Senha'], status_code=status.HTTP_200_OK, response_model=schemas.CofreSenhaLista)
+async def pegar_por_nome(tx_nome:str, cliente_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+    retorno = await RepositorioCofreSenha(db).get_by_nome(tx_nome, cliente_id)
     if not retorno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o nome: {tx_nome} informado!')
     
     retorno.tx_senha = await hash_cofresenha.decripta_hash(retorno.tx_senha)
     return retorno
 
-@router.get("/cofresenha/{setor_id}", tags=['Cofre Senha'], status_code=status.HTTP_200_OK, response_model=schemas.CofreSenhaLista)
-async def pegar_por_setor(setor_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
-    retorno = await RepositorioCofreSenha(db).get_by_setor(setor_id)
+@router.get("/cofresenha/{cliente_id}", tags=['Cofre Senha'], status_code=status.HTTP_200_OK, response_model=schemas.CofreSenhaLista)
+async def pegar_por_cliente(cliente_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+    retorno = await RepositorioCofreSenha(db).get_by_cliente(cliente_id)
     
     if not retorno:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o setor id: {setor_id} informado!')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o cliente id: {cliente_id} informado!')
     return retorno
 
 @router.delete("/cofresenha/{cofresenha_id}", tags=['Cofre Senha'], status_code=status.HTTP_200_OK)

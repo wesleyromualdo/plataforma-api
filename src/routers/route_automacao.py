@@ -6,7 +6,7 @@ from src.routers.auth_utils import obter_usuario_logado
 from src.sqlalchemy.config.database import get_db
 from src.schemas import schemas
 from src.sqlalchemy.repositorios.automacao import RepositorioAutomacao
-from src.sqlalchemy.repositorios.setor import RepositorioSetor
+from src.sqlalchemy.repositorios.cliente import RepositorioCliente
 
 from starlette.requests import Request
 from starlette.responses import Response, FileResponse
@@ -39,14 +39,14 @@ router = APIRouter(route_class=RouteErrorHandler)
 
 @router.get("/automacao", tags=['Automação'], status_code=status.HTTP_200_OK)
 async def listar_todas_automacoes(tx_nome: Optional[str] = Query(default=None, max_length=200),
-                                setor_id: Optional[str] = Query(default=None),
+                                cliente_id: Optional[str] = Query(default=None),
                                 bo_status: Optional[str] = Query(default=True),
                                 nu_cpf: Optional[str] = Query(default=None),
                                 pagina: Optional[int] = Query(default=0),
                                 tamanho_pagina: Optional[int] = Query(default=0), 
                                 db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     
-    retorno = await RepositorioAutomacao(db).get_all(setor_id, tx_nome, bo_status, nu_cpf, pagina, tamanho_pagina)
+    retorno = await RepositorioAutomacao(db).get_all(cliente_id, tx_nome, bo_status, nu_cpf, pagina, tamanho_pagina)
     if not retorno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o(s) filtro(s) informado(s)!')
     return retorno
@@ -59,12 +59,12 @@ async def inserir_automacao(model: schemas.AutomacaoPOST, db: Session = Depends(
     retorno = await RepositorioAutomacao(db).post(model)
     return retorno
 
-@router.post("/automacao/executor/", tags=['Automação'], status_code=status.HTTP_201_CREATED)
-async def gravar_executor(model: schemas.AutomacaoPOST, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+@router.post("/automacao/worker/", tags=['Automação'], status_code=status.HTTP_201_CREATED)
+async def gravar_worker(model: schemas.AutomacaoPOST, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     retorno = await RepositorioAutomacao(db).get_automacao_by_nome(model.tx_nome)    
     if retorno:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Já existe um Automacao cadastrado com esse Nome: {retorno.id} - {model.tx_nome} informado!')
-    retorno = await RepositorioAutomacao(db).gravar_executor(model)
+    retorno = await RepositorioAutomacao(db).gravar_worker(model)
     return retorno
 
 @router.put("/automacao/", tags=['Automação'], status_code=status.HTTP_200_OK)
@@ -79,44 +79,44 @@ async def pegar_automacao(automacao_id: int, db: Session = Depends(get_db), usua
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o id: {automacao_id} informado!')
     return retorno
 
-@router.get("/automacao/executor/{automacao_id}", tags=['Automação'], status_code=status.HTTP_200_OK)
-async def pegar_automacao_executor(automacao_id: int, db: Session = Depends(get_db)):
+@router.get("/automacao/worker/{automacao_id}", tags=['Automação'], status_code=status.HTTP_200_OK)
+async def pegar_automacao_worker(automacao_id: int, db: Session = Depends(get_db)):
     retorno = await RepositorioAutomacao(db).get_txjson_by_id(automacao_id)
     if not retorno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o id: {automacao_id} informado!')
     return retorno
 
-@router.get("/automacao/executor/constante/{constante_virtual}", tags=['Automação'], status_code=status.HTTP_200_OK)
-async def pegar_automacao_executor(constante_virtual: str, db: Session = Depends(get_db)):
+@router.get("/automacao/worker/constante/{constante_virtual}", tags=['Automação'], status_code=status.HTTP_200_OK)
+async def pegar_automacao_worker(constante_virtual: str, db: Session = Depends(get_db)):
     retorno = await RepositorioAutomacao(db).get_txjson_by_constante_virtual(constante_virtual)
     if not retorno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para a constante_virtual: {constante_virtual} informado!')
     return retorno
 
-@router.get("/automacao/setor/{setor_id}", tags=['Automação'], status_code=status.HTTP_200_OK, response_model=List[schemas.Automacao])
-async def pegar_automacao_setor(setor_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
-    retorno = await RepositorioAutomacao(db).get_by_setor(setor_id)
+@router.get("/automacao/cliente/{cliente_id}", tags=['Automação'], status_code=status.HTTP_200_OK, response_model=List[schemas.Automacao])
+async def pegar_automacao_cliente(cliente_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+    retorno = await RepositorioAutomacao(db).get_by_cliente(cliente_id)
     if not retorno:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o id: {setor_id} informado!')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o id: {cliente_id} informado!')
     return retorno
 
-@router.get("/automacao/usuario/{nu_cpf}/{setor_id}", tags=['Automação'], status_code=status.HTTP_200_OK)
-async def pegar_automacao_usuario(nu_cpf: str, setor_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
-    retorno = await RepositorioAutomacao(db).get_automacao_by_usuario(nu_cpf, setor_id)
-    if not retorno:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o CPF: {nu_cpf} informado!')
-    return retorno
-
-@router.get("/automacao/executor/{nu_cpf}/{tx_ip_mac}", tags=['Automação'], status_code=status.HTTP_200_OK)
-async def get_usuario_by_executor(nu_cpf: str, tx_ip_mac: str, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
-    retorno = await RepositorioAutomacao(db).get_usuario_by_executor(nu_cpf, tx_ip_mac)
+@router.get("/automacao/usuario/{nu_cpf}/{cliente_id}", tags=['Automação'], status_code=status.HTTP_200_OK)
+async def pegar_automacao_usuario(nu_cpf: str, cliente_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+    retorno = await RepositorioAutomacao(db).get_automacao_by_usuario(nu_cpf, cliente_id)
     if not retorno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o CPF: {nu_cpf} informado!')
     return retorno
 
-@router.get("/automacao/combodashboard/{nu_cpf}/{setor_id}/{periodo}", tags=['Automação'], status_code=status.HTTP_200_OK)
-async def pegar_automacao_usuario(nu_cpf: str, setor_id: int, periodo:int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
-    retorno = await RepositorioAutomacao(db).get_automacao_by_usuario_dashboard(nu_cpf, setor_id, periodo)
+@router.get("/automacao/worker/{nu_cpf}/{tx_ip_mac}", tags=['Automação'], status_code=status.HTTP_200_OK)
+async def get_usuario_by_worker(nu_cpf: str, tx_ip_mac: str, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+    retorno = await RepositorioAutomacao(db).get_usuario_by_worker(nu_cpf, tx_ip_mac)
+    if not retorno:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o CPF: {nu_cpf} informado!')
+    return retorno
+
+@router.get("/automacao/combodashboard/{nu_cpf}/{cliente_id}/{periodo}", tags=['Automação'], status_code=status.HTTP_200_OK)
+async def pegar_automacao_usuario(nu_cpf: str, cliente_id: int, periodo:int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+    retorno = await RepositorioAutomacao(db).get_automacao_by_usuario_dashboard(nu_cpf, cliente_id, periodo)
     if not retorno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o CPF: {nu_cpf} informado!')
     return retorno
@@ -126,24 +126,24 @@ async def apagar_automacao(automacao_id: int, db: Session = Depends(get_db), usu
     retorno = await RepositorioAutomacao(db).delete(automacao_id)
     return retorno
 
-@router.get("/download/executor/{automacao_id}", tags=['Automação'], status_code=status.HTTP_200_OK)
-async def download_executor(automacao_id: int,db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+@router.get("/download/worker/{automacao_id}", tags=['Automação'], status_code=status.HTTP_200_OK)
+async def download_worker(automacao_id: int,db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     try:
         retorno = await RepositorioAutomacao(db).get_by_id_sql(automacao_id)
-        setor = await RepositorioSetor(db).get_by_id(retorno.setor_id)
-        tx_sigla = str(retorno.setor_id)+'_'+str(setor.tx_sigla).replace(' ', '').lower()
+        cliente = await Repositoriocliente(db).get_by_id(retorno.cliente_id)
+        tx_sigla = str(retorno.cliente_id)+'_'+str(cliente.tx_sigla).replace(' ', '').lower()
 
         file_name = str(retorno.tx_nome)+'.zip'
-        file_path = os.getcwd().replace('\\','/') + "/executores/"+str(tx_sigla)+'/'+ file_name
-        file_path_seg = os.getcwd().replace('\\','/') + "/executores/"+str(retorno.setor_id)+"_zello/"+ file_name
+        file_path = os.getcwd().replace('\\','/') + "/workers/"+str(tx_sigla)+'/'+ file_name
+        file_path_seg = os.getcwd().replace('\\','/') + "/workers/"+str(retorno.cliente_id)+"_automaxia/"+ file_name
 
-        os.makedirs(os.getcwd() + "/executores/"+str(tx_sigla), exist_ok=True)
+        os.makedirs(os.getcwd() + "/workers/"+str(tx_sigla), exist_ok=True)
         
         config = dotenv_values(".env")
         config = json.loads((json.dumps(config) ))
         s3_client = boto3.client('s3', aws_access_key_id=config['AWS_ACCESS_KEY_ID'], aws_secret_access_key=config['AWS_SECRET_ACCESS_KEY'])
 
-        object_name = f"arquivos/executores/{tx_sigla}/{file_name}"
+        object_name = f"arquivos/workers/{tx_sigla}/{file_name}"
         
         s3_client.download_file(
             Bucket=config['S3_BUCKET'],

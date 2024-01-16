@@ -6,14 +6,10 @@ from src.utils import utils
 import os, json
 from dotenv import dotenv_values
 
-
-#SQLALCHEMY_DATABASE_URL = "sqlite:///./solve_automation.db"
-#SQLALCHEMY_DATABASE_URL = "postgresql+psycopg2://botsolve:bot!solve!@localhost:5434/SolveAutomation"
-#SQLALCHEMY_DATABASE_URL = f"postgresql+psycopg2://{user}:{password}@{host}:{porta}/{database}"
 config = dotenv_values(".env")
 config = json.loads((json.dumps(config) ))
 
-SQLALCHEMY_DATABASE_URL = config['DATABASE_URL_SOLVER']
+SQLALCHEMY_DATABASE_URL = config['DATABASE_URL_AUTOMAXIA']
 
 #SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 connect_args = {

@@ -34,7 +34,7 @@ class RepositorioAnexoScript():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_setor_by_nome(self, tx_nome: str):
+    async def get_cliente_by_nome(self, tx_nome: str):
         try:
             stmt = select(models.AnexoScript).where(models.AnexoScript.tx_nome == tx_nome)
             db_orm = self.db.execute(stmt).scalars().first()

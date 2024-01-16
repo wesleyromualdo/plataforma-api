@@ -2,15 +2,15 @@ from fastapi import FastAPI, Request, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 
-from src.routers import (route_auth, route_dados_negocial, route_executor, route_logs, route_menu, 
-    route_perfil, route_setor, route_tarefa, route_usuario, route_automacao, route_util, route_script,
+from src.routers import (route_auth, route_dados_negocial, route_worker, route_logs, route_menu, 
+    route_perfil, route_cliente, route_tarefa, route_usuario, route_automacao, route_util, route_script,
     route_arquivos, route_controleexecucao, route_cofresenha)
 
 from src.jobs.write_notification import write_notification
 #from fastapi_socketio import SocketManager
 
 '''from Controllers.MenuController import MenuController
-from Controllers.SetorController import SetorController
+from Controllers.ClienteController import ClienteController
 from Controllers.PerfilController import PerfilController
 from Controllers.UsuarioController import UsuarioController
 from Controllers.AutomacaoController import AutomacaoController'''
@@ -25,8 +25,8 @@ tags_metadata = [
         "description": "Este serviço tem o objetivo manter os registros de Usuários"
     },
     {
-        "name": "Setor",
-        "description": "Este serviço tem o objetivo manter os registros de Setores"
+        "name": "Cliente",
+        "description": "Este serviço tem o objetivo manter os registros de Clientes"
     },
     {
         "name": "Menu",
@@ -61,8 +61,8 @@ tags_metadata = [
         "description": "Este serviço tem o objetivo manter os registros de anexos de tarefas",
     },
     {
-        "name": "Executor",
-        "description": "Este serviço tem o objetivo manter os registros de download dos executores",
+        "name": "Worker",
+        "description": "Este serviço tem o objetivo manter os registros de download dos workers",
     },
     {
         "name": "Util",
@@ -82,16 +82,14 @@ tags_metadata = [
     }
 ]
 
-app = FastAPI(title="SOLVE AUTOMATION", openapi_tags=tags_metadata)
+app = FastAPI(title="AUTOMAXIA AUTOMATION", openapi_tags=tags_metadata)
 #socket_manager = SocketManager(app=app)
 # CORS
 origins = [
     "http://localhost",
     "http://localhost:8080",
     "http://localhost:4200",
-    "https://plataforma.automaxia.com.br",
-    "https://plataforma.automaxia.com.br/",
-    "http://plataforma.automaxia.com.br/"
+    "https://plataforma.automaxia.com.br"
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -125,8 +123,8 @@ app.include_router(route_auth.router)
 # USUÁRIO
 app.include_router(route_usuario.router)
 
-# SETOR
-app.include_router(route_setor.router)
+# Cliente
+app.include_router(route_cliente.router)
 
 # MENU
 app.include_router(route_menu.router)
@@ -151,7 +149,7 @@ app.include_router(route_dados_negocial.router)
 
 app.include_router(route_script.router)
 
-app.include_router(route_executor.router)
+app.include_router(route_worker.router)
 
 app.include_router(route_arquivos.router)
 
@@ -192,8 +190,8 @@ def send_message_handler(msg):
     socket_manager.emit('getMessage', msg)'''
 
 '''
-INSERT INTO public.setor(tx_sigla, tx_nome, bo_status)
-VALUES('Solve', 'Área responsável pela execução e configuração inicial da ferramenta', true);
+INSERT INTO public.cliente(tx_sigla, tx_nome, bo_status)
+VALUES('Automaxia', 'Área responsável pela execução e configuração inicial da ferramenta', true);
 
 INSERT INTO public.perfil(tx_nome, tx_finalidade, bo_superuser, bo_status)
 VALUES('Administrador', 'Responsável gerir os cadastros e configuração da ferramenta', true, true);
@@ -201,7 +199,7 @@ VALUES('Administrador', 'Responsável gerir os cadastros e configuração da fer
 INSERT INTO public.perfil_usuario(nu_cpf, perfil_id)
 VALUES('00000000191', (SELECT id FROM public.perfil WHERE tx_nome = 'Administrador'));
 
-#senha = admin@solve
+#senha = admin@automaxia
 
 INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(1000, 'DashBoard', '/dashBoard', 'dashBoard', 1, true);
 INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(2000, 'Tarefa', '/tarefa', 'assignment', 2, true);
@@ -209,8 +207,8 @@ INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_statu
 INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(4000, 'Gestão de usuário', '/usuario', 'group', 4, true);
 INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(5000, 'Cadastro de Módulo', '/modulo', 'view_module', 5, true);
 INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(6000, 'Cadastro de Perfil', '/perfil', 'assignment_ind', 6, true);
-INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(7000, 'Cadastro de Setor', '/setor', 'supervised_user_circle', 7, true);
+INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(7000, 'Cadastro de cliente', '/cliente', 'supervised_user_circle', 7, true);
 
-INSERT INTO public.perfil_menu(menu_id, perfil_id, setor_id)
-(SELECT id, (SELECT id FROM public.perfil WHERE tx_nome = 'Solve'), (SELECT id FROM public.setor WHERE tx_sigla = 'Solve') FROM public.menu);
+INSERT INTO public.perfil_menu(menu_id, perfil_id, cliente_id)
+(SELECT id, (SELECT id FROM public.perfil WHERE tx_nome = 'Automaxia'), (SELECT id FROM public.cliente WHERE tx_sigla = 'Automaxia') FROM public.menu);
 '''

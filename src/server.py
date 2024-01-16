@@ -1,11 +1,11 @@
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.routers import route_auth, route_dados_negocial, route_logs, route_menu, route_perfil, route_setor, route_tarefa, route_usuario, route_automacao, route_util
+from src.routers import route_auth, route_dados_negocial, route_logs, route_menu, route_perfil, route_cliente, route_tarefa, route_usuario, route_automacao, route_util
 from src.jobs.write_notification import write_notification
 
 '''from Controllers.MenuController import MenuController
-from Controllers.SetorController import SetorController
+from Controllers.ClienteController import ClienteController
 from Controllers.PerfilController import PerfilController
 from Controllers.UsuarioController import UsuarioController
 from Controllers.AutomacaoController import AutomacaoController'''
@@ -20,8 +20,8 @@ tags_metadata = [
         "description": "Este serviço tem o objetivo manter os registros de Usuários"
     },
     {
-        "name": "Setor",
-        "description": "Este serviço tem o objetivo manter os registros de Setores"
+        "name": "Cliente",
+        "description": "Este serviço tem o objetivo manter os registros de Clientes"
     },
     {
         "name": "Menu",
@@ -57,17 +57,14 @@ tags_metadata = [
     }
 ]
 
-app = FastAPI(title="SOLVE AUTOMATION", openapi_tags=tags_metadata)
+app = FastAPI(title="AUTOMAXIA AUTOMATION", openapi_tags=tags_metadata)
 
 # CORS
 origins = [
     "http://localhost",
     "http://localhost:8080",
     "http://localhost:4200",
-    "https://plataforma.automaxia.com.br",
-    "https://plataforma.automaxia.com.br/",
-    "http://plataforma.automaxia.com.br/"
-    ]
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
@@ -96,8 +93,8 @@ app.include_router(route_auth.router)
 # USUÁRIO
 app.include_router(route_usuario.router)
 
-# SETOR
-app.include_router(route_setor.router)
+# Cliente
+app.include_router(route_cliente.router)
 
 # MENU
 app.include_router(route_menu.router)
@@ -137,42 +134,42 @@ async def tempo_middleware(request: Request, next):
 
 '''
 ######################################################################################################################
-#  SETOR                                                                                                             #
+#  cliente                                                                                                             #
 ######################################################################################################################
-@app.get("/setor", tags=['Setor'])
-async def listar_todos_setores(setid: Union[int, None] = None,
+@app.get("/cliente", tags=['cliente'])
+async def listar_todos_clientes(setid: Union[int, None] = None,
                                 setnome: Union[str, None] = Query(default=None, max_length=200),
                                 setdsc: Union[str, None] = Query(default=None, max_length=500),
                                 setstatus: Union[bool, None] = Query(default=True),
                                 pagina: Union[int, None] = Query(default=0),
                                 tamanho_pagina: Union[int, None] = Query(default=10)):
 
-    setorControl = SetorController()
-    retorno = await setorControl.get_all(setid, setnome, setdsc, setstatus, pagina, tamanho_pagina)
+    clienteControl = clienteController()
+    retorno = await clienteControl.get_all(setid, setnome, setdsc, setstatus, pagina, tamanho_pagina)
     return retorno
 
-@app.get("/setor/{id_setor}", tags=['Setor'])
-async def pegar_setor(id_setor: int):
-    setorControl = SetorController()
-    retorno = await setorControl.get_by_id(id_setor)
+@app.get("/cliente/{id_cliente}", tags=['cliente'])
+async def pegar_cliente(id_cliente: int):
+    clienteControl = clienteController()
+    retorno = await clienteControl.get_by_id(id_cliente)
     return retorno
 
-@app.post("/setor/", tags=['Setor'])
-async def inserir_setor(setor: model.Setor):
-    setorControl = SetorController()
-    retorno = await setorControl.post(setor)
+@app.post("/cliente/", tags=['cliente'])
+async def inserir_cliente(cliente: model.cliente):
+    clienteControl = clienteController()
+    retorno = await clienteControl.post(cliente)
     return retorno
 
-@app.put("/setor/", tags=['Setor'])
-async def atualizar_setor(setor: model.Setor):
-    setorControl = SetorController()
-    retorno = await setorControl.put(setor)
+@app.put("/cliente/", tags=['cliente'])
+async def atualizar_cliente(cliente: model.cliente):
+    clienteControl = clienteController()
+    retorno = await clienteControl.put(cliente)
     return retorno
 
-@app.delete("/setor/{id_setor}", tags=['Setor'])
-async def apagar_setor(id_setor: int):
-    setorControl = SetorController()
-    retorno = await setorControl.delete_by_id(id_setor)
+@app.delete("/cliente/{id_cliente}", tags=['cliente'])
+async def apagar_cliente(id_cliente: int):
+    clienteControl = clienteController()
+    retorno = await clienteControl.delete_by_id(id_cliente)
     return retorno
 ######################################################################################################################
 #  MENU                                                                                                              #
@@ -253,7 +250,7 @@ async def apagar_menu(id_perfil: int):
     retorno = await perfilControl.delete_by_id(id_perfil)
     return retorno
 
-@app.post("/perfil_setor/", tags=['Perfil'])
+@app.post("/perfil_cliente/", tags=['Perfil'])
 async def inserir_menu(menu: model.Menu):
     perfilControl = PerfilController()
     retorno = await perfilControl.post(menu)

@@ -7,9 +7,9 @@ services:
         ports:
             - "5432:5432"
         environment:
-            POSTGRES_PASSWORD: "bot!solve!"
-            POSTGRES_USER: "botsolve"
-            POSTGRES_DB: "SolveAutomation"
+            POSTGRES_PASSWORD: ""
+            POSTGRES_USER: ""
+            POSTGRES_DB: ""
         volumes:
             - "./docker_config/postgresql/pgdata:/var/lib/postgresql/pgdata"
         networks:

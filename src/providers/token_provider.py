@@ -3,7 +3,7 @@ from jose import jwt
 import pytz, traceback
 from src.utils import utils
 
-#CONFIG  solve-automation-bot
+#CONFIG  automaxia-automation-bot
 
 SECRET_KEY = '6a0801ecf06dcef8ee930375a12593a39077e855'
 ALGORITHM = 'HS256'

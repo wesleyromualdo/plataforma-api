@@ -44,7 +44,7 @@ async def efetuar_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Se
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'O USUÁRIO informado não encontrado!')
     
     expirar = ''
-    if client_id == 'executor':
+    if client_id == 'worker':
         expirar = 9000000
         senha_valida = False
         if tx_senha == usuario.tx_senha:

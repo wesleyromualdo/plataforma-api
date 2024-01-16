@@ -14,7 +14,7 @@ def ja_existe_registro_cadastrado(func):
         try:
             return func(*args, **kwargs)
         except Exception as error:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Já existe um setor cadastrado com esse nome informado!')
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Já existe um cliente cadastrado com esse nome informado!')
     return inner
 
 def pega_dados_configuracao():

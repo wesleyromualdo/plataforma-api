@@ -23,9 +23,9 @@ class RepositorioCofreSenha():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_by_nome(self, tx_nome: str, setor_id: int):
+    async def get_by_nome(self, tx_nome: str, cliente_id: int):
         try:
-            stmt = select(models.CofreSenha).where(models.CofreSenha.tx_nome == tx_nome).where(models.CofreSenha.bo_status == True).where(models.CofreSenha.setor_id == setor_id)
+            stmt = select(models.CofreSenha).where(models.CofreSenha.tx_nome == tx_nome).where(models.CofreSenha.bo_status == True).where(models.CofreSenha.cliente_id == cliente_id)
             db_orm = self.db.execute(stmt).scalars().first()
             return db_orm
         except:
@@ -33,9 +33,9 @@ class RepositorioCofreSenha():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_by_setor(self, setor_id: int):
+    async def get_by_cliente(self, cliente_id: int):
         try:
-            stmt = select(models.CofreSenha).where(models.CofreSenha.setor_id == setor_id).where(models.CofreSenha.bo_status == True)
+            stmt = select(models.CofreSenha).where(models.CofreSenha.cliente_id == cliente_id).where(models.CofreSenha.bo_status == True)
             db_orm = self.db.execute(stmt).scalars().all()
             return db_orm
         except:
@@ -43,7 +43,7 @@ class RepositorioCofreSenha():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_all(self, setor_id, tx_nome, tx_usuario, bo_status, pagina, tamanho_pagina):
+    async def get_all(self, cliente_id, tx_nome, tx_usuario, bo_status, pagina, tamanho_pagina):
         try:
             result = self.db.query(models.CofreSenha)
             
@@ -53,8 +53,8 @@ class RepositorioCofreSenha():
             if tx_usuario:
                 result = result.filter(models.CofreSenha.tx_usuario == tx_usuario)
 
-            if setor_id:
-                result = result.filter(models.CofreSenha.setor_id == setor_id)
+            if cliente_id:
+                result = result.filter(models.CofreSenha.cliente_id == cliente_id)
 
             if str(bo_status) and bo_status is not None:
                 result = result.filter(models.CofreSenha.bo_status == bo_status)
@@ -74,7 +74,7 @@ class RepositorioCofreSenha():
                 tx_nome = orm.tx_nome,
                 tx_usuario = orm.tx_usuario,
                 tx_senha = orm.tx_senha,
-                setor_id = orm.setor_id
+                cliente_id = orm.cliente_id
             )
             
             self.db.add(db_orm)
@@ -92,7 +92,7 @@ class RepositorioCofreSenha():
                 tx_nome = orm.tx_nome,
                 tx_usuario = orm.tx_usuario,
                 tx_senha = orm.tx_senha,
-                setor_id = orm.setor_id
+                cliente_id = orm.cliente_id
             )
             db_orm = self.db.execute(stmt)
             self.db.commit()

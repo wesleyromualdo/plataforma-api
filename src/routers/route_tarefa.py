@@ -6,7 +6,7 @@ from src.sqlalchemy.config.database import get_db
 from src.schemas import schemas
 from src.sqlalchemy.repositorios.tarefa import RepositorioTarefa
 from src.sqlalchemy.repositorios.anexo_script import RepositorioAnexoScript
-from src.sqlalchemy.repositorios.setor import RepositorioSetor
+from src.sqlalchemy.repositorios.cliente import RepositorioCliente
 
 from src.providers.connection_manager import ConnectionManager
 
@@ -45,46 +45,46 @@ async def listar_todas_tarefas(bo_execucao: Optional[bool] = Query(default=False
                                 tx_nome: Optional[str] = Query(default=None, max_length=200),
                                 bo_status: Optional[bool] = Query(default=True),
                                 automacao_id: Optional[str] = Query(default=None),
-                                setor_id: Optional[int] = Query(default=None),
+                                cliente_id: Optional[int] = Query(default=None),
                                 bo_agendada: Optional[str] = Query(default=None),
                                 pagina: Optional[int] = Query(default=0),
                                 tamanho_pagina: Optional[int] = Query(default=0), 
                                 db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
 
-    retorno = await RepositorioTarefa(db).get_all(nu_cpf, tx_nome, bo_execucao, bo_status, automacao_id, setor_id, bo_agendada, pagina, tamanho_pagina)
+    retorno = await RepositorioTarefa(db).get_all(nu_cpf, tx_nome, bo_execucao, bo_status, automacao_id, cliente_id, bo_agendada, pagina, tamanho_pagina)
     if not retorno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o(s) filtro(s) informado(s)!')
     return retorno
 
 @router.get("/tarefa/dashboard", tags=['Tarefa'], status_code=status.HTTP_200_OK)
-async def carrega_tarefa_dashboard(setor_id: int,
+async def carrega_tarefa_dashboard(cliente_id: int,
                                 automacao_id: Optional[str] = Query(default=None),
                                 periodo: Optional[str] = Query(default='10'),
                                 nu_cpf: Optional[str] = Query(default=None, max_length=20),
                                 db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
 
-    retorno = await RepositorioTarefa(db).carrega_tarefa_dashboard_grafico(setor_id, automacao_id, periodo, nu_cpf)
+    retorno = await RepositorioTarefa(db).carrega_tarefa_dashboard_grafico(cliente_id, automacao_id, periodo, nu_cpf)
     return retorno
 
 @router.get("/tarefa/dashboard/dados-automacao", tags=['Tarefa'], status_code=status.HTTP_200_OK)
-async def carrega_dados_automacao_dashboard(setor_id: int,
+async def carrega_dados_automacao_dashboard(cliente_id: int,
                                             automacao_id: Optional[str] = Query(default=None),
                                             periodo: Optional[str] = Query(default='10'), 
                                             db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
-    retorno = await RepositorioTarefa(db).carrega_dados_automacao_dashboard(setor_id, automacao_id, periodo)
+    retorno = await RepositorioTarefa(db).carrega_dados_automacao_dashboard(cliente_id, automacao_id, periodo)
     return retorno
 
 @router.post("/tarefa/", tags=['Tarefa'], status_code=status.HTTP_201_CREATED)
 async def inserir_tarefa(model: schemas.TarefaPOST, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     try:
-        retorno = await RepositorioTarefa(db).get_tarefa_by_nome(model.tx_nome, model.setor_id)
+        retorno = await RepositorioTarefa(db).get_tarefa_by_nome(model.tx_nome, model.cliente_id)
         if retorno:
             return {'detail':f'Já existe um Tarefa cadastrado com esse Nome: {model.tx_nome} informado!'}
             #raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Já existe um Tarefa cadastrado com esse Nome: {model.tx_nome} informado!')
 
         '''tarefa = await RepositorioTarefa(db).get_tarefa_by_automacao_id(model.automacao_id)        
         if len(tarefa) > 50:
-            return {'detail':f'O executor selecionado, já atingiu o número máximo de tarefas vinculadas a ele!'}
+            return {'detail':f'O worker selecionado, já atingiu o número máximo de tarefas vinculadas a ele!'}
             #raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Já existe uma Tarefa({model.tx_nome}) cadastrada para essa automação!')'''
         
         retorno = await RepositorioTarefa(db).post(model)
@@ -100,7 +100,7 @@ async def atualizar_tarefa(model: schemas.Tarefa, db: Session = Depends(get_db),
     try:
         '''tarefa = await RepositorioTarefa(db).get_tarefa_by_automacao_id(model.automacao_id)
         if len(tarefa) > 50:
-            return {'detail':f'O executor selecionado, já atingiu o número máximo de tarefas vinculadas a ele!'}'''
+            return {'detail':f'O worker selecionado, já atingiu o número máximo de tarefas vinculadas a ele!'}'''
 
         retorno = await RepositorioTarefa(db).put(model)
         return retorno
@@ -164,9 +164,9 @@ async def iniciar_tarefa(model: schemas.IniciaTarefa, db: Session = Depends(get_
         elif retorno.bo_execucao is True:
             return {'status': 0, 'message': f"A tarefa {retorno.tx_nome} já está em execução. Tente novamente mais tarde.", 'id':retorno.historico_id}
         else:
-            automacao = await RepositorioTarefa(db).pega_automacao_espera(model.automacao_id, model.setor_id)
+            automacao = await RepositorioTarefa(db).pega_automacao_espera(model.automacao_id, model.cliente_id)
             if automacao is None:
-                return {'status': 0, 'message': 'Não foi encontrado nenhum executor ativo'}
+                return {'status': 0, 'message': 'Não foi encontrado nenhum worker ativo'}
             else:
                 retorno = await RepositorioTarefa(db).iniciar_tarefa(model)
                 return {'status': 1, 'message': 'Iniciando a execução da tarefa', 'id':retorno.historico_id}
@@ -268,12 +268,12 @@ async def pegar_automacao_tarefa(automacao_id: int, db: Session = Depends(get_db
         utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
         return {'detail': f'Erro na execução: '+str(traceback.format_exc())}
 
-@router.get("/tarefa/executor/{automacao_id}/{tx_ip_mac}", tags=['Tarefa'], status_code=status.HTTP_200_OK)
-async def pegar_tarefa_por_executor(automacao_id: int, tx_ip_mac:str, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+@router.get("/tarefa/worker/{automacao_id}/{tx_ip_mac}", tags=['Tarefa'], status_code=status.HTTP_200_OK)
+async def pegar_tarefa_por_worker(automacao_id: int, tx_ip_mac:str, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     try:
-        retorno = await RepositorioTarefa(db).carrega_tarefa_by_executor(automacao_id, tx_ip_mac)
+        retorno = await RepositorioTarefa(db).carrega_tarefa_by_worker(automacao_id, tx_ip_mac)
         if retorno == 'inativo':
-            return {'detail': f'Este executor está inativado de ip mac: {tx_ip_mac}!'}
+            return {'detail': f'Este worker está inativado de ip mac: {tx_ip_mac}!'}
 
         if not retorno:
             return {'detail': f'Não foi encontrado nenhuma tarefa liberada para esta automação de id: {automacao_id}!'}
@@ -289,11 +289,11 @@ async def apagar_tarefa(tarefa_id: int, db: Session = Depends(get_db), usuario =
     retorno = await RepositorioTarefa(db).delete(tarefa_id)
     return retorno
 
-@router.get("/tarefa/usuario/{nu_cpf}/{nome_executor}", tags=['Tarefa'], status_code=status.HTTP_200_OK)
-async def carrega_tarefas_por_usuario(nu_cpf: Optional[str] = Query(default=None, max_length=20), nome_executor: Optional[str] = Query(default=None),
+@router.get("/tarefa/usuario/{nu_cpf}/{nome_worker}", tags=['Tarefa'], status_code=status.HTTP_200_OK)
+async def carrega_tarefas_por_usuario(nu_cpf: Optional[str] = Query(default=None, max_length=20), nome_worker: Optional[str] = Query(default=None),
                                 db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
 
-    retorno = await RepositorioTarefa(db).carrega_tarefa_by_cpf(nu_cpf, nome_executor)
+    retorno = await RepositorioTarefa(db).carrega_tarefa_by_cpf(nu_cpf, nome_worker)
     if not retorno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o n° de CPF informado!')
     return retorno
@@ -308,8 +308,8 @@ async def uploadScripts(file: UploadFile, tarefa_id: str, nu_cpf: str, db: Sessi
         tx_tipo = file.content_type
 
         tarefa = await RepositorioTarefa(db).get_by_id(tarefa_id)
-        setor = await RepositorioSetor(db).get_by_id(tarefa.setor_id)
-        tx_sigla = str(setor.id)+'_'+str(setor.tx_sigla).replace(' ', '').lower()
+        cliente = await RepositorioCliente(db).get_by_id(tarefa.cliente_id)
+        tx_sigla = str(cliente.id)+'_'+str(cliente.tx_sigla).replace(' ', '').lower()
         
         contents = file.file.read()
         diretorio = f"{os.getcwd()}/automacoes/{tx_sigla}/"
@@ -381,8 +381,8 @@ async def downloadScripts(tarefa_id: int,db: Session = Depends(get_db), usuario 
     try:
         retorno = await RepositorioTarefa(db).get_by_id(tarefa_id)
 
-        setor = await RepositorioSetor(db).get_by_id(retorno.setor_id)
-        tx_sigla = str(setor.id)+'_'+str(setor.tx_sigla).replace(' ', '').lower()
+        cliente = await RepositorioCliente(db).get_by_id(retorno.cliente_id)
+        tx_sigla = str(cliente.id)+'_'+str(cliente.tx_sigla).replace(' ', '').lower()
 
         file_name = retorno.tx_nome_script
         file_path = os.getcwd() + "/automacoes/"+str(tx_sigla)+'/'+ file_name

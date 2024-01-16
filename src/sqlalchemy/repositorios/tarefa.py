@@ -47,9 +47,9 @@ class RepositorioTarefa():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_tarefa_by_nome(self, tx_nome: str, setor_id: str):
+    async def get_tarefa_by_nome(self, tx_nome: str, cliente_id: str):
         try:
-            stmt = select(models.Tarefa).where(models.Tarefa.tx_nome == tx_nome).where(models.Tarefa.bo_status == True).where(models.Tarefa.setor_id == setor_id)
+            stmt = select(models.Tarefa).where(models.Tarefa.tx_nome == tx_nome).where(models.Tarefa.bo_status == True).where(models.Tarefa.cliente_id == cliente_id)
             db_orm = self.db.execute(stmt).scalars().first()
             return db_orm
         except:
@@ -57,7 +57,7 @@ class RepositorioTarefa():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_all(self, nu_cpf, tx_nome, bo_execucao, bo_status, automacao_id, setor_id, bo_agendada, pagina=0, tamanho_pagina=0):
+    async def get_all(self, nu_cpf, tx_nome, bo_execucao, bo_status, automacao_id, cliente_id, bo_agendada, pagina=0, tamanho_pagina=0):
         try:
             '''j = join(models.Tarefa, models.AutomacaoUsuario, models.Tarefa.automacao_id == models.AutomacaoUsuario.automacao_id)
             result = self.db.query(models.Tarefa).select_from(j).where(models.AutomacaoUsuario.nu_cpf == nu_cpf)
@@ -68,8 +68,8 @@ class RepositorioTarefa():
             if automacao_id:
                 result = result.filter(models.Tarefa.automacao_id == automacao_id)
 
-            if setor_id:
-                result = result.filter(models.Tarefa.setor_id == setor_id)
+            if cliente_id:
+                result = result.filter(models.Tarefa.cliente_id == cliente_id)
 
             if tx_nome:
                 result = result.filter(models.Tarefa.tx_nome == tx_nome)
@@ -98,9 +98,9 @@ class RepositorioTarefa():
                 filtro += f" and t.automacao_id = {automacao_id}"
 
             filtro_tmp = ''
-            if setor_id:
-                filtro += f" and t.setor_id = {setor_id}"
-                filtro_tmp += f" and t.setor_id = {setor_id}"
+            if cliente_id:
+                filtro += f" and t.cliente_id = {cliente_id}"
+                filtro_tmp += f" and t.cliente_id = {cliente_id}"
 
             if tx_nome:
                 filtro += f" and t.tx_nome ilike '%{tx_nome}%'"
@@ -111,7 +111,7 @@ class RepositorioTarefa():
 						WHERE t.bo_status = TRUE {filtro_tmp} --AND dt_fim IS NOT NULL AND th.automacao_id IS NOT NULL
                     )
                     SELECT DISTINCT 
-                        t.id, t.automacao_id, t.nu_cpf, t.tx_nome, t.tx_situacao, t.dt_inclusao, t.bo_status, t.setor_id, t.bo_execucao, t.bo_agendada, 
+                        t.id, t.automacao_id, t.nu_cpf, t.tx_nome, t.tx_situacao, t.dt_inclusao, t.bo_status, t.cliente_id, t.bo_execucao, t.bo_agendada, 
                         t.json_agendamento, t.tx_assunto_inicia, t.tx_corpo_email_inicia, t.tx_assunto_finaliza, t.tx_corpo_email_finaliza, t.bo_email, t.historico_id, 
                         a.tx_nome AS automacao, t.tx_json, th.dt_inicio, th.dt_fim, '' as agendamento, t.anexo_script_id, t.nu_prioridade
                     FROM tarefa t
@@ -217,7 +217,7 @@ class RepositorioTarefa():
     def transformaDict(self, results):
         return [dict(r) for r in results]
 
-    async def carrega_tarefa_dashboard_grafico(self, setor_id, automacao_id, periodo, nu_cpf):
+    async def carrega_tarefa_dashboard_grafico(self, cliente_id, automacao_id, periodo, nu_cpf):
         try:
             
             filtro = ''
@@ -228,10 +228,10 @@ class RepositorioTarefa():
                         FROM(
                             SELECT to_char(th.dt_inicio::timestamp, 'YYYY-MM-DD') AS dt_inicio_formatada
                             FROM tarefa t
-                                INNER JOIN setor s ON s.id = t.setor_id
+                                INNER JOIN cliente s ON s.id = t.cliente_id
                                 INNER JOIN tarefa_historico th ON th.tarefa_id = t.id
                                 INNER JOIN automacao_usuario au ON au.automacao_id = t.automacao_id
-                            WHERE t.setor_id = {setor_id}
+                            WHERE t.cliente_id = {cliente_id}
                                 {filtro}
                                 AND th.dt_inicio BETWEEN (now() - INTERVAL '{periodo} day') AND now()
                                 AND au.nu_cpf = '{nu_cpf}'
@@ -247,10 +247,10 @@ class RepositorioTarefa():
                 stmt = f"""WITH tarefa_by_id AS (
                                 SELECT DISTINCT t.id AS tarefa_id
                                 FROM tarefa t
-                                    INNER JOIN setor s ON s.id = t.setor_id
+                                    INNER JOIN cliente s ON s.id = t.cliente_id
                                     INNER JOIN automacao_usuario au ON au.automacao_id = t.automacao_id
                                     INNER JOIN tarefa_historico th ON th.tarefa_id = t.id AND th.dt_inicio BETWEEN (now() - INTERVAL '{periodo} day') AND now()
-                                WHERE t.setor_id = {setor_id}
+                                WHERE t.cliente_id = {cliente_id}
                                     AND au.nu_cpf = '{nu_cpf}'
                                     AND t.bo_status = TRUE
                                     {filtro}
@@ -258,27 +258,27 @@ class RepositorioTarefa():
                             SELECT 
                                 automacao_id,
                                 tarefa,
-                                setor,
+                                cliente,
                                 automacao,
                                 COALESCE(dt_inicio, to_char('{data_inicio}'::timestamp, 'DD/MM/YYYY')) AS dt_inicio,
                                 CASE WHEN dt_inicio IS NULL THEN 'N' ELSE 'S' END AS tem_historico,
                                 COALESCE(sum(tempo)::time, '00:00:00'::time) AS tempo_total,
                                 COALESCE(DATEDIFF('minute', '1900-01-01 00:00:00'::timestamp, ('1900-01-01 '||sum(tempo)::time)::timestamp),0) AS minutos
                             FROM(
-                                SELECT t.id AS tarefa_id, a.id AS automacao_id, t.tx_nome AS tarefa, s.tx_sigla AS setor, a.tx_nome AS automacao,
+                                SELECT t.id AS tarefa_id, a.id AS automacao_id, t.tx_nome AS tarefa, s.tx_sigla AS cliente, a.tx_nome AS automacao,
                                     to_char(th.dt_inicio::timestamp, 'DD/MM/YYYY') AS dt_inicio, th.dt_fim::timestamp, (th.dt_fim::timestamp - th.dt_inicio::timestamp)::time AS tempo
                                 FROM tarefa t
                                     INNER JOIN automacao a ON a.id = t.automacao_id
-                                    INNER JOIN setor s ON s.id = t.setor_id
+                                    INNER JOIN cliente s ON s.id = t.cliente_id
                                     INNER JOIN automacao_usuario au ON au.automacao_id = t.automacao_id
                                     LEFT JOIN tarefa_historico th ON th.tarefa_id = t.id AND to_char(th.dt_inicio, 'YYYY-MM-DD') = '{data_inicio}'
-                                WHERE t.setor_id = {setor_id}
+                                WHERE t.cliente_id = {cliente_id}
                                     AND t.bo_status = TRUE
                                     AND t.id IN (SELECT tarefa_id FROM tarefa_by_id)
                                     AND au.nu_cpf = '{nu_cpf}'
                                     {filtro}
                             ) AS foo
-                            GROUP BY tarefa, setor, automacao, dt_inicio, automacao_id
+                            GROUP BY tarefa, cliente, automacao, dt_inicio, automacao_id
                             ORDER BY dt_inicio;"""
             
                 db_orm = self.db.execute(stmt).all()
@@ -289,7 +289,7 @@ class RepositorioTarefa():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def carrega_dados_automacao_dashboard(self, setor_id, automacao_id, periodo):
+    async def carrega_dados_automacao_dashboard(self, cliente_id, automacao_id, periodo):
         try:
             filtro = ''
             if automacao_id:
@@ -322,7 +322,7 @@ class RepositorioTarefa():
                                 ) th ON th.tarefa_id = t.id 
                             WHERE a.bo_status = TRUE
                                 AND t.bo_status = TRUE
-                                AND t.setor_id = {setor_id}
+                                AND t.cliente_id = {cliente_id}
                                 {filtro}
                         ) AS foo;"""
             db_orm = self.db.execute(stmt).first()
@@ -369,7 +369,7 @@ class RepositorioTarefa():
 
             stmt = f"""SELECT DISTINCT th.id, th.tarefa_id, th.nu_cpf, th.dt_inicio, th.dt_fim, th.bo_status_code, th.tx_resumo, th.tx_json
                     FROM tarefa t
-                        INNER JOIN setor s ON s.id = t.setor_id AND s.bo_status = true
+                        INNER JOIN cliente s ON s.id = t.cliente_id AND s.bo_status = true
                         INNER JOIN tarefa_historico th ON th.tarefa_id = t.id --AND th.id = t.historico_id
                         INNER JOIN automacao_usuario au ON au.automacao_id = t.automacao_id
                     WHERE t.bo_status = TRUE
@@ -388,7 +388,7 @@ class RepositorioTarefa():
         try:
             #stmt = select(models.TarefaHistorico).where(models.TarefaHistorico.tarefa_id == tarefa_id).order_by(models.TarefaHistorico.id.desc())
             #db_orm = self.db.execute(stmt).scalars().all()
-            sql = f"""SELECT th.*, a.tx_nome as executor FROM tarefa_historico th 
+            sql = f"""SELECT th.*, a.tx_nome as worker FROM tarefa_historico th 
                         LEFT JOIN automacao a ON a.id = th.automacao_id 
                     WHERE th.tarefa_id = {tarefa_id}
                     ORDER BY th.id DESC"""
@@ -442,7 +442,7 @@ class RepositorioTarefa():
             #await self.verifica_agendamento_tarefa(automacao_id)
             
             j = join(models.Automacao, models.Tarefa, models.Tarefa.automacao_id == models.Automacao.id)
-            #stmt = select(models.Setor).select_from(j).where(models.UsuarioSetor.nu_cpf == nu_cpf)
+            #stmt = select(models.Cliente).select_from(j).where(models.UsuarioCliente.nu_cpf == nu_cpf)
 
             stmt = select(models.Tarefa, models.Automacao.tx_json).select_from(j).where(models.Tarefa.automacao_id == automacao_id).where(models.Tarefa.bo_execucao == True)
             db_orm = self.db.execute(stmt).first()
@@ -458,12 +458,12 @@ class RepositorioTarefa():
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
     #async def verifica_agendamento_tarefa(self, automacao_id: int):
-    async def verifica_agendamento_tarefa(self, nu_cpf='', nome_executor='', automacao_id = ''):
+    async def verifica_agendamento_tarefa(self, nu_cpf='', nome_worker='', automacao_id = ''):
         try:
             today = date.today()
 
             if automacao_id:
-                sql = f"""SELECT DISTINCT t.id AS tarefa_id, t.setor_id, t.automacao_id, t.nu_cpf, t.tx_json, t.bo_agendada, t.json_agendamento,
+                sql = f"""SELECT DISTINCT t.id AS tarefa_id, t.cliente_id, t.automacao_id, t.nu_cpf, t.tx_json, t.bo_agendada, t.json_agendamento,
                         COALESCE(DATEDIFF('second', th.dt_fim::timestamp, now()::timestamp),0) AS segundos,
 	                    COALESCE(DATEDIFF('hour', th.dt_fim::timestamp, now()::timestamp),0) AS horas
                     FROM tarefa t  
@@ -476,14 +476,14 @@ class RepositorioTarefa():
                         AND t.bo_status = TRUE
                         AND t.bo_execucao = FALSE;"""
             else:
-                sql = f"""SELECT DISTINCT t.id AS tarefa_id, t.setor_id, t,automacao_id, t.nu_cpf, t.tx_json, t.bo_agendada, t.json_agendamento,
+                sql = f"""SELECT DISTINCT t.id AS tarefa_id, t.cliente_id, t,automacao_id, t.nu_cpf, t.tx_json, t.bo_agendada, t.json_agendamento,
                         COALESCE(DATEDIFF('second', th.dt_fim::timestamp, now()::timestamp),0) AS segundos,
 	                    COALESCE(DATEDIFF('hour', th.dt_fim::timestamp, now()::timestamp),0) AS horas
                     FROM tarefa t  
                         INNER JOIN automacao a ON a.id = t.automacao_id
                         INNER JOIN automacao_usuario au ON au.automacao_id = a.id 
                         LEFT JOIN tarefa_historico th ON th.tarefa_id = t.id AND th.id = t.historico_id
-                    WHERE a.tx_ip_mac = '{nome_executor}'
+                    WHERE a.tx_ip_mac = '{nome_worker}'
                     	--AND au.nu_cpf = '{nu_cpf}'
                         AND t.json_agendamento IS NOT NULL
                         AND t.json_agendamento != ''
@@ -598,16 +598,16 @@ class RepositorioTarefa():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def pega_automacao_espera(self, automacao_id:int, setor_id:int):
+    async def pega_automacao_espera(self, automacao_id:int, cliente_id:int):
         sql = f"""WITH historico AS (
                     SELECT count(id) AS tarefa, automacao_id, tx_ip_execucao 
                     FROM tarefa_historico WHERE dt_fim IS NULL AND automacao_id IS NOT NULL
                     GROUP BY automacao_id, tx_ip_execucao
                 )
-                SELECT COALESCE(th.tarefa,0) AS tarefa, de.* FROM download_executor de
+                SELECT COALESCE(th.tarefa,0) AS tarefa, de.* FROM download_worker de
                     LEFT JOIN historico th ON th.automacao_id = de.automacao_id AND th.tx_ip_execucao = de.tx_ip_mac
                 WHERE de.automacao_id = {automacao_id}
-                    and de.setor_id = {setor_id}
+                    and de.cliente_id = {cliente_id}
                     AND de.bo_status = TRUE
                     AND de.bo_ativo = TRUE
                 ORDER BY COALESCE(th.tarefa,0) ASC"""
@@ -617,7 +617,7 @@ class RepositorioTarefa():
 
     async def iniciar_tarefa(self, orm: schemas.IniciaTarefa):
         try:
-            automacao = await self.pega_automacao_espera(orm.automacao_id, orm.setor_id)
+            automacao = await self.pega_automacao_espera(orm.automacao_id, orm.cliente_id)
 
             db_orm = models.TarefaHistorico(
                 tarefa_id = orm.tarefa_id,
@@ -716,7 +716,7 @@ class RepositorioTarefa():
             db_orm = models.Tarefa(
                 tx_nome = orm.tx_nome,
                 nu_cpf = orm.nu_cpf,
-                setor_id = orm.setor_id,
+                cliente_id = orm.cliente_id,
                 automacao_id = orm.automacao_id,
                 bo_execucao = orm.bo_execucao,
                 bo_agendada = orm.bo_agendada,
@@ -933,11 +933,11 @@ class RepositorioTarefa():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def carrega_tarefa_by_cpf(self, nu_cpf, nome_executor):
+    async def carrega_tarefa_by_cpf(self, nu_cpf, nome_worker):
         try:
-            await self.verifica_agendamento_tarefa(nu_cpf, nome_executor)
+            await self.verifica_agendamento_tarefa(nu_cpf, nome_worker)
 
-            stmt = f"""SELECT DISTINCT t.id, t.automacao_id, t.nu_cpf, t.tx_nome, t.bo_status, t.setor_id, t.bo_execucao, t.bo_agendada, 
+            stmt = f"""SELECT DISTINCT t.id, t.automacao_id, t.nu_cpf, t.tx_nome, t.bo_status, t.cliente_id, t.bo_execucao, t.bo_agendada, 
                             t.json_agendamento, t.tx_assunto_inicia, t.tx_corpo_email_inicia, t.tx_assunto_finaliza, t.tx_corpo_email_finaliza, t.anexo_script_id,
                             t.bo_email, t.historico_id, t.tx_nome_script, a.tx_ip_mac, t.tx_json AS json_tarefa, to_char(s.dt_inclusao, 'YYYY-MM-DD HH24:MI:SS') as dt_inclusao,
                             to_char(s.dt_download, 'YYYY-MM-DD HH24:MI:SS') as dt_download, t.nu_prioridade
@@ -947,7 +947,7 @@ class RepositorioTarefa():
                             INNER JOIN anexo_script s ON s.id = t.anexo_script_id AND s.bo_status = TRUE
                             INNER JOIN tarefa_historico th ON th.tarefa_id = t.id AND th.dt_fim IS NOT NULL
                         WHERE /*au.nu_cpf = '{nu_cpf}'
-                            AND*/ a.tx_ip_mac = '{nome_executor}'
+                            AND*/ a.tx_ip_mac = '{nome_worker}'
                             AND t.bo_execucao = TRUE
                         ORDER BY t.nu_prioridade DESC"""
             
@@ -958,22 +958,22 @@ class RepositorioTarefa():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def carrega_tarefa_by_executor_constante(self, constante_virtual, tx_ip_mac):
+    async def carrega_tarefa_by_worker_constante(self, constante_virtual, tx_ip_mac):
         try:
-            sql = f"""SELECT de.automacao_id, de.id FROM download_executor de
+            sql = f"""SELECT de.automacao_id, de.id FROM download_worker de
                         INNER JOIN automacao a ON a.id = de.automacao_id 
                     WHERE a.tx_constante_virtual = '{constante_virtual}' AND de.bo_status = TRUE AND de.tx_ip_mac = '{tx_ip_mac}'"""
-            executor = self.db.execute(sql).first()
+            worker = self.db.execute(sql).first()
             
-            if executor.automacao_id:
-                sql = f"UPDATE download_executor SET dt_alive = now(), bo_ativo = TRUE WHERE id = '{executor.id}'"
+            if worker.automacao_id:
+                sql = f"UPDATE download_worker SET dt_alive = now(), bo_ativo = TRUE WHERE id = '{worker.id}'"
                 self.db.execute(sql)
                 self.db.commit()
 
-                automacao_id = executor.automacao_id
+                automacao_id = worker.automacao_id
                 await self.verifica_agendamento_tarefa('', '', automacao_id)
 
-                stmt = f"""SELECT DISTINCT t.id, t.automacao_id, t.nu_cpf, t.tx_nome, t.bo_status, t.setor_id, t.bo_execucao, t.bo_agendada, 
+                stmt = f"""SELECT DISTINCT t.id, t.automacao_id, t.nu_cpf, t.tx_nome, t.bo_status, t.cliente_id, t.bo_execucao, t.bo_agendada, 
                                 t.json_agendamento, t.tx_assunto_inicia, t.tx_corpo_email_inicia, t.tx_assunto_finaliza, t.tx_corpo_email_finaliza, t.anexo_script_id,
                                 t.bo_email, t.historico_id, t.tx_nome_script, t.tx_json AS json_tarefa, to_char(s.dt_inclusao, 'YYYY-MM-DD HH24:MI:SS') as dt_inclusao,
                                 to_char(s.dt_download, 'YYYY-MM-DD HH24:MI:SS') as dt_download, t.nu_prioridade, a.tx_json
@@ -997,19 +997,19 @@ class RepositorioTarefa():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
     
-    async def carrega_tarefa_by_executor(self, automacao_id, tx_ip_mac):
+    async def carrega_tarefa_by_worker(self, automacao_id, tx_ip_mac):
         try:
-            sql = f"SELECT bo_status, id FROM download_executor WHERE automacao_id = {automacao_id} AND tx_ip_mac = '{tx_ip_mac}'"
-            executor = self.db.execute(sql).first()
+            sql = f"SELECT bo_status, id FROM download_worker WHERE automacao_id = {automacao_id} AND tx_ip_mac = '{tx_ip_mac}'"
+            worker = self.db.execute(sql).first()
             
-            if executor['bo_status'] is True:
-                sql = f"UPDATE download_executor SET dt_alive = now(), bo_ativo = TRUE WHERE id = {executor['id']}"
+            if worker['bo_status'] is True:
+                sql = f"UPDATE download_worker SET dt_alive = now(), bo_ativo = TRUE WHERE id = {worker['id']}"
                 self.db.execute(sql)
                 self.db.commit()
 
                 await self.verifica_agendamento_tarefa('', '', automacao_id)
 
-                stmt = f"""SELECT DISTINCT t.id, t.automacao_id, t.nu_cpf, t.tx_nome, t.bo_status, t.setor_id, t.bo_execucao, t.bo_agendada, 
+                stmt = f"""SELECT DISTINCT t.id, t.automacao_id, t.nu_cpf, t.tx_nome, t.bo_status, t.cliente_id, t.bo_execucao, t.bo_agendada, 
                                 t.json_agendamento, t.tx_assunto_inicia, t.tx_corpo_email_inicia, t.tx_assunto_finaliza, t.tx_corpo_email_finaliza, t.anexo_script_id,
                                 t.bo_email, t.historico_id, t.tx_nome_script, t.tx_json AS json_tarefa, to_char(s.dt_inclusao, 'YYYY-MM-DD HH24:MI:SS') as dt_inclusao,
                                 to_char(s.dt_download, 'YYYY-MM-DD HH24:MI:SS') as dt_download, t.nu_prioridade, a.tx_json

@@ -10,8 +10,8 @@ print('Automaxia@'+senha)
 
 #Natália Sampaio Sene Fernandes
 #228.969.748-65
-#Solver@oMstpENC
+#automaxia@oMstpENC
 
 #Rafael de Castro Bomfim
 #CPF: 100.705.567-76
-#Solver@PKXuFMVx
+#automaxia@PKXuFMVx

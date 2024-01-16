@@ -58,12 +58,12 @@ class RepositorioAutomacao():
 
     async def get_by_id_sql(self, id: int):
         try:
-            stmt = f"""WITH downloadexecutor AS (
-                            SELECT count(id) AS tot_donwload, automacao_id FROM public.download_executor GROUP BY automacao_id
+            stmt = f"""WITH downloadworker AS (
+                            SELECT count(id) AS tot_donwload, automacao_id FROM public.download_worker GROUP BY automacao_id
                         )
                         SELECT *, COALESCE(tot_donwload, 0) AS total_donwload 
                         FROM public.automacao a 
-                            LEFT JOIN downloadexecutor d ON d.automacao_id = a.id
+                            LEFT JOIN downloadworker d ON d.automacao_id = a.id
                         WHERE a.id = {id} AND a.bo_status = true;"""
             db_orm = self.db.execute(stmt).first()
             return db_orm
@@ -82,17 +82,17 @@ class RepositorioAutomacao():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_automacao_by_usuario(self, nu_cpf: str, setor_id: str):
+    async def get_automacao_by_usuario(self, nu_cpf: str, cliente_id: str):
         try:
             '''SELECT count(th.id) AS qtd_tarefas, th.automacao_id FROM tarefa_historico th
 						INNER JOIN tarefa t ON t.id = th.tarefa_id
-                        WHERE t.setor_id = {setor_id} AND t.bo_status = TRUE
+                        WHERE t.cliente_id = {cliente_id} AND t.bo_status = TRUE
                         	AND th.automacao_id IS NOT NULL
                         GROUP BY th.automacao_id'''
 
             stmt = f"""WITH tarefa_tmp AS (
                         SELECT count(th.id) AS qtd_tarefas, th.automacao_id FROM tarefa th
-                        WHERE th.setor_id = {setor_id} AND th.bo_status = TRUE
+                        WHERE th.cliente_id = {cliente_id} AND th.bo_status = TRUE
                         	AND th.automacao_id IS NOT NULL
                         GROUP BY th.automacao_id
                     )
@@ -101,11 +101,11 @@ class RepositorioAutomacao():
                         INNER JOIN automacao_usuario au ON au.automacao_id = a.id 
                         LEFT JOIN tarefa_tmp tp ON tp.automacao_id = a.id
                     WHERE au.nu_cpf = '{nu_cpf}'
-                        AND a.setor_id = {setor_id}
+                        AND a.cliente_id = {cliente_id}
                         AND a.bo_status = TRUE"""
 
             '''j = join(models.Automacao, models.AutomacaoUsuario, models.Automacao.id == models.AutomacaoUsuario.automacao_id)
-            stmt = select(models.Automacao).select_from(j).where(models.AutomacaoUsuario.nu_cpf == nu_cpf).where(models.Automacao.setor_id == setor_id)'''
+            stmt = select(models.Automacao).select_from(j).where(models.AutomacaoUsuario.nu_cpf == nu_cpf).where(models.Automacao.cliente_id == cliente_id)'''
             db_orm = self.db.execute(stmt).all()
             return db_orm
         except:
@@ -113,7 +113,7 @@ class RepositorioAutomacao():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_usuario_by_executor(self, nu_cpf: str, tx_ip_mac: str):
+    async def get_usuario_by_worker(self, nu_cpf: str, tx_ip_mac: str):
         try:
             j = join(models.Automacao, models.AutomacaoUsuario, models.Automacao.id == models.AutomacaoUsuario.automacao_id)
             stmt = select(models.Automacao).select_from(j).where(models.AutomacaoUsuario.nu_cpf == nu_cpf).where(models.Automacao.tx_ip_mac == tx_ip_mac)
@@ -124,12 +124,12 @@ class RepositorioAutomacao():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_automacao_by_usuario_dashboard(self, nu_cpf: str, setor_id: str, periodo=10):
+    async def get_automacao_by_usuario_dashboard(self, nu_cpf: str, cliente_id: str, periodo=10):
         try:
-            stmt = f"""SELECT DISTINCT a.id, a.setor_id, a.tx_nome, a.tx_descricao, a.bo_status, a.tx_json, a.dt_inclusao 
+            stmt = f"""SELECT DISTINCT a.id, a.cliente_id, a.tx_nome, a.tx_descricao, a.bo_status, a.tx_json, a.dt_inclusao 
                     FROM automacao a
                         INNER JOIN automacao_usuario au ON au.automacao_id = a.id 
-                        INNER JOIN tarefa t ON t.automacao_id = a.id AND t.bo_status = TRUE AND t.setor_id = {setor_id}
+                        INNER JOIN tarefa t ON t.automacao_id = a.id AND t.bo_status = TRUE AND t.cliente_id = {cliente_id}
                         INNER JOIN tarefa_historico th ON th.tarefa_id = t.id AND th.dt_inicio BETWEEN (now() - INTERVAL '{periodo} day') AND now()
                     WHERE a.bo_status = TRUE
                         AND au.nu_cpf = '{nu_cpf}'"""
@@ -140,9 +140,9 @@ class RepositorioAutomacao():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_by_setor(self, setor_id: int):
+    async def get_by_cliente(self, cliente_id: int):
         try:
-            stmt = select(models.Automacao).where(models.Automacao.setor_id == setor_id).where(models.Automacao.bo_status == True)
+            stmt = select(models.Automacao).where(models.Automacao.cliente_id == cliente_id).where(models.Automacao.bo_status == True)
             db_orm = self.db.execute(stmt).scalars().all()
             return db_orm
         except:
@@ -150,13 +150,13 @@ class RepositorioAutomacao():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_all(self, setor_id, tx_nome, bo_status, nu_cpf, pagina=0, tamanho_pagina=0):
+    async def get_all(self, cliente_id, tx_nome, bo_status, nu_cpf, pagina=0, tamanho_pagina=0):
         try:
             #j = join(models.Tarefa, models.Automacao, models.Automacao.id == models.Tarefa.automacao_id)
 
             '''result = self.db.query(models.Automacao)
-            if setor_id:
-                result = result.filter(models.Automacao.setor_id == setor_id)
+            if cliente_id:
+                result = result.filter(models.Automacao.cliente_id == cliente_id)
 
             if tx_nome:
                 result = result.filter(models.Automacao.tx_nome == tx_nome)
@@ -166,8 +166,8 @@ class RepositorioAutomacao():
                 result = result.filter(models.Automacao.bo_status == bo_status)'''
 
             filtro = ''
-            if setor_id:
-                filtro += f" and a.setor_id = {setor_id}"
+            if cliente_id:
+                filtro += f" and a.cliente_id = {cliente_id}"
 
             #if nu_cpf:
             #    filtro += f" and au.nu_cpf = '{nu_cpf}'"
@@ -191,7 +191,7 @@ class RepositorioAutomacao():
                         SELECT count(id) AS tarefas, automacao_id FROM tarefa t WHERE bo_status = TRUE
                         GROUP BY automacao_id
                     )
-                    SELECT DISTINCT a.id, a.setor_id, a.tx_nome, a.tx_descricao, a.bo_status, 
+                    SELECT DISTINCT a.id, a.cliente_id, a.tx_nome, a.tx_descricao, a.bo_status, 
                         a.dt_inclusao, a.nu_qtd_tarefa, a.nu_cpf, a.nu_qtd_download ,
                         COALESCE(t.qtd_execucao,0) AS qtd_execucao, coalesce(qt.tarefas,0) AS tarefas_vinculadas,
                         t.tempo_execucao::varchar, t.dt_inicio, t.dt_fim
@@ -211,29 +211,29 @@ class RepositorioAutomacao():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def gerar_executor_cliente(self, dados):
+    async def gerar_worker_cliente(self, dados):
         try:
             cpf = ''
             for i in range(0,10):
                 cpf = str(cpf)+str(random.randint(0,9))
 
-            dir_executor = os.getcwd()+'/executor_tpl'
-            dir_executor = dir_executor.replace('/', '/')
-            executor = 'executor-setup.zip'
+            dir_workers = os.getcwd()+'/worker_tpl'
+            dir_workers = dir_workers.replace('/', '/')
+            workers = 'worker-setup.zip'
 
-            sql = f"SELECT tx_sigla FROM setor s WHERE id = {dados.setor_id}"
-            setor = self.db.execute(sql).first()
-            tx_sigla = str(dados.setor_id)+'_'+str(setor.tx_sigla).replace(' ', '').lower()
+            sql = f"SELECT tx_sigla FROM cliente s WHERE id = {dados.cliente_id}"
+            cliente = self.db.execute(sql).first()
+            tx_sigla = str(dados.cliente_id)+'_'+str(cliente.tx_sigla).replace(' ', '').lower()
 
-            dir_cli_executor = os.getcwd()+'/executores/'+str(tx_sigla)
+            dir_cli_workers = os.getcwd()+'/workers/'+str(tx_sigla)
 
-            os.makedirs(dir_cli_executor, exist_ok=True)
+            os.makedirs(dir_cli_workers, exist_ok=True)
 
-            dir_cliente = dir_cli_executor+'/'+str(dados.tx_nome)+'.zip'
+            dir_cliente = dir_cli_workers+'/'+str(dados.tx_nome)+'.zip'
             dir_cliente = dir_cliente.replace('/', '/')
 
-            if os.path.isfile(dir_executor+'/executor-setup.zip'):
-                dest = shutil.copy(dir_executor+'/executor-setup.zip', dir_cliente)
+            if os.path.isfile(dir_workers+'/worker-setup.zip'):
+                dest = shutil.copy(dir_workers+'/worker-setup.zip', dir_cliente)
 
             tx_json = json.loads(dados.tx_json)
 
@@ -249,24 +249,24 @@ class RepositorioAutomacao():
                 "url_console": f"{tx_json['url_console']}",
                 "username": f"{cpf}",
                 "password": f"{senha_hash}",
-                "executor": 'EXECUTOR_'+str(dados.tx_nome).upper().replace('@',''),
+                "worker": 'WORKER_'+str(dados.tx_nome).upper().replace('@',''),
                 "tempo_espera": 10,
                 "email": f"{tx_json['tx_email']}"
             }
 
             db_orm = models.Usuario(
                 nu_cpf = cpf,
-                tx_nome = 'EXECUTOR_'+str(dados.tx_nome).upper().replace('@',''),
+                tx_nome = 'WORKERS_'+str(dados.tx_nome).upper().replace('@',''),
                 tx_email = tx_json['tx_email'],
                 tx_senha = senha_hash,
-                bo_executor = True
+                bo_worker = True
             )
             self.db.add(db_orm)
             self.db.commit()
             
-            db_uss = models.UsuarioSetor(
+            db_uss = models.UsuarioCliente(
                 nu_cpf = cpf,
-                setor_id = dados.setor_id
+                cliente_id = dados.cliente_id
             )            
             self.db.add(db_uss)
             self.db.commit()
@@ -281,7 +281,7 @@ class RepositorioAutomacao():
             db_ormA = models.AutomacaoUsuario(
                 nu_cpf = dados.nu_cpf,
                 automacao_id = dados.id,
-                setor_id = dados.setor_id
+                cliente_id = dados.cliente_id
             )
             self.db.add(db_ormA)
             self.db.commit()
@@ -294,20 +294,20 @@ class RepositorioAutomacao():
 
             config = dotenv_values(".env")
             configJson = json.loads((json.dumps(config) ))
-            config_json = {"url_console": f"{configJson['URL_BACK_SOLVER']}", "executor": 'EXECUTOR_'+str(dados.tx_nome).upper().replace('@','')}
+            config_json = {"url_console": f"{configJson['URL_BACK_AUTOMAXIA']}", "worker": 'WORKER_'+str(dados.tx_nome).upper().replace('@','')}
 
             with ZipFile(dir_cliente, 'a') as myzip:
-                #with myzip.open('executor-setup/config.json','r') as myfile:
-                with open(str(os.getcwd()).replace('/', '/')+'/executor.json', "a", encoding='utf_8_sig') as outfile:
+                #with myzip.open('workers-setup/config.json','r') as myfile:
+                with open(str(os.getcwd()).replace('/', '/')+'/worker.json', "a", encoding='utf_8_sig') as outfile:
                     outfile.write(str(config_json).replace("'", '"'))
-                myzip.write('executor.json')
+                myzip.write('workers.json')
                 myzip.close()
 
-            if os.path.isfile(str(os.getcwd()).replace('/', '/')+'/executor.json'):
-                os.remove(os.getcwd()+'/executor.json')
+            if os.path.isfile(str(os.getcwd()).replace('/', '/')+'/worker.json'):
+                os.remove(os.getcwd()+'/worker.json')
 
             filename_s3 = str(dados.tx_nome)+'.zip'
-            object_name = f"arquivos/executores/{tx_sigla}/{filename_s3}"
+            object_name = f"arquivos/workers/{tx_sigla}/{filename_s3}"
             s3_client = boto3.client('s3', aws_access_key_id=configJson['AWS_ACCESS_KEY_ID'], aws_secret_access_key=configJson['AWS_SECRET_ACCESS_KEY'])
             response = s3_client.upload_file(dir_cliente, configJson['S3_BUCKET'], object_name)
 
@@ -317,22 +317,22 @@ class RepositorioAutomacao():
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
             return {"detail": f"""{traceback.format_exc()}""","data": str(dataErro)}
 
-    async def gravar_executor(self, orm: schemas.Automacao):
+    async def gravar_worker(self, orm: schemas.Automacao):
         try:
             db_orm = models.Automacao(
                 tx_nome = orm.tx_nome.upper(),
-                setor_id = orm.setor_id,
+                cliente_id = orm.cliente_id,
                 tx_descricao = orm.tx_descricao,
                 tx_json = orm.tx_json,
                 nu_cpf = orm.nu_cpf,
                 nu_qtd_tarefa = orm.nu_qtd_tarefa,
-                tx_constante_virtual = 'EXECUTOR_'+str(orm.tx_nome.upper()).replace('@','')
+                tx_constante_virtual = 'WORKER_'+str(orm.tx_nome.upper()).replace('@','')
             )
             self.db.add(db_orm)
             self.db.commit()
             self.db.refresh(db_orm)
 
-            retorno = await self.gerar_executor_cliente(db_orm)
+            retorno = await self.gerar_worker_cliente(db_orm)
             return await self.get_by_id(db_orm.id)
         except:
             utc_dt = datetime.now(timezone.utc)
@@ -344,7 +344,7 @@ class RepositorioAutomacao():
         try:
             db_orm = models.Automacao(
                 tx_nome = orm.tx_nome.upper(),
-                setor_id = orm.setor_id,
+                cliente_id = orm.cliente_id,
                 tx_descricao = orm.tx_descricao,
                 bo_status = orm.bo_status,
                 tx_json = orm.tx_json

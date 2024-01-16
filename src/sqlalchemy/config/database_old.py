@@ -3,8 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./solve_automation.db"
-#SQLALCHEMY_DATABASE_URL = "postgresql+psycopg2://postgres:Solve2022!@54.94.12.249:5432/botsolve"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./automaxia_automation.db"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}

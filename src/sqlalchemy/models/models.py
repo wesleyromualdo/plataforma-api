@@ -5,16 +5,16 @@ from src.sqlalchemy.config.database import Base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-class Setor(Base):
-    __tablename__ = 'setor'
+class Cliente(Base):
+    __tablename__ = 'cliente'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     tx_sigla = Column(String(20))
     tx_nome = Column(String(200))
-    nu_executor = Column(Integer, server_default='1', default=1)
+    nu_worker = Column(Integer, server_default='1', default=1)
     bo_status = Column(Boolean, server_default='t', default=True)
-    usuarios = relationship('Usuario', secondary='usuario_setor', viewonly=True)
-    #usuarios = relationship('Usuario', back_populates='setor')
+    usuarios = relationship('Usuario', secondary='usuario_cliente', viewonly=True)
+    #usuarios = relationship('Usuario', back_populates='cliente')
 
 class Usuario(Base):
     __tablename__ = 'usuario'
@@ -25,18 +25,18 @@ class Usuario(Base):
     tx_email = Column(String(300))
     tx_foto = Column(Text)
     bo_status = Column(Boolean, server_default='t', default=True)
-    bo_executor = Column(Boolean, server_default='f', default=False)
+    bo_worker = Column(Boolean, server_default='f', default=False)
     dt_inclusao = Column(DateTime(timezone=False), server_default=func.now())
-    setor = relationship('Setor', secondary="usuario_setor", viewonly=True)
+    cliente = relationship('Cliente', secondary="usuario_cliente", viewonly=True)
     #perfil = relationship('Perfil', secondary="perfil_usuario", viewonly=True)
-    #setor = relationship('Setor', back_populates='usuarios')
+    #cliente = relationship('Cliente', back_populates='usuarios')
 
-class UsuarioSetor(Base):
-    __tablename__ = 'usuario_setor'
+class UsuarioCliente(Base):
+    __tablename__ = 'usuario_cliente'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_usuariosetor_usuario'))
-    setor_id = Column(Integer, ForeignKey('setor.id', name='fk_usuariosetor_setor'))
+    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_usuariocliente_usuario'))
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_usuariocliente_cliente'))
     dt_ultimoacesso = Column(DateTime(timezone=False))
 
 class Menu(Base):
@@ -65,7 +65,7 @@ class Perfil(Base):
     constante_virtual = Column(String(100))
     menu = relationship('Menu', secondary="perfil_menu", viewonly=True)
     #usuario = relationship('Usuario', secondary='perfil_usuario', viewonly=True)
-    #setor = relationship('Menu', secondary="perfil_menu", viewonly=True)
+    #cliente = relationship('Menu', secondary="perfil_menu", viewonly=True)
     #perfilmenu = relationship('Perfil', backref='perfil')
 
 class PerfilMenu(Base):
@@ -74,7 +74,7 @@ class PerfilMenu(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     menu_id = Column(Integer, ForeignKey('menu.id', name='fk_perfilmenu_menu'))
     perfil_id = Column(Integer, ForeignKey('perfil.id', name='fk_perfilmenu_perfil'))
-    setor_id = Column(Integer, ForeignKey('setor.id', name='fk_perfilmenu_setor'))
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_perfilmenu_cliente'))
 
     #perfis = relationship('Perfil', back_populates='perfilmenu')
     #menus = relationship('Menu', back_populates='perfis')
@@ -83,7 +83,7 @@ class Automacao(Base):
     __tablename__ = 'automacao'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    setor_id = Column(Integer, ForeignKey('setor.id', name='fk_automacao_setor'))
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_automacao_cliente'))
     nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_automacao_usuario'))
     tx_nome = Column(String(200))
     tx_descricao = Column(String(200))
@@ -93,18 +93,18 @@ class Automacao(Base):
     bo_status = Column(Boolean, server_default='t', default=True)
     tx_json = Column(Text)
     dt_inclusao = Column(DateTime(timezone=False), server_default=func.now())
-    setor = relationship('Setor', backref='setor')
-    #setor = relationship('Setor', secondary='setor', viewonly=True)
+    cliente = relationship('Cliente', backref='cliente')
+    #cliente = relationship('cliente', secondary='cliente', viewonly=True)
     tarefa = relationship('Tarefa', back_populates='automacao')
-    download = relationship('DownloadExecutor', back_populates='automacao')
+    download = relationship('DownloadWorker', back_populates='automacao')
 
-class DownloadExecutor(Base):
-    __tablename__ = 'download_executor'
+class DownloadWorker(Base):
+    __tablename__ = 'download_worker'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    setor_id = Column(Integer, ForeignKey('setor.id', name='fk_download_executor_setor'))
-    automacao_id = Column(Integer, ForeignKey('automacao.id', name='fk_download_executor_automacao'))
-    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_download_executor_usuario'))
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_download_worker_cliente'))
+    automacao_id = Column(Integer, ForeignKey('automacao.id', name='fk_download_worker_automacao'))
+    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_download_worker_usuario'))
     tx_nome = Column(String(200))
     tx_ip_mac = Column(String(30))    
     tx_ip = Column(String(30))
@@ -129,7 +129,7 @@ class AutomacaoUsuario(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_automacao_usuario_usuario'))
     automacao_id = Column(Integer, ForeignKey('automacao.id', name='fk_automacao_usuario_automacao'))
-    setor_id = Column(Integer, ForeignKey('setor.id', name='fk_automacao_usuario_setor'))
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_automacao_usuario_cliente'))
 
 
 class PerfilUsuario(Base):
@@ -145,9 +145,9 @@ class Tarefa(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     automacao_id = Column(Integer, ForeignKey('automacao.id', name='fk_tarefa_automacao'))
-    setor_id = Column(Integer, ForeignKey('setor.id', name='fk_tarefa_setor'))
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_tarefa_cliente'))
     nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_tarefa_usuario'))
-    historico_id = Column(Integer, ForeignKey('tarefa_historico.id', name='fk_tarefa_tarefa_historico'))
+    historico_id = Column(Integer)
     tx_nome = Column(String(200))
     tx_situacao = Column(String(200))
     bo_agendada = Column(Boolean, server_default='f', default=False)
@@ -243,7 +243,7 @@ class CofreSenha(Base):
     __tablename__ = 'cofre_senha'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    setor_id = Column(Integer, ForeignKey('setor.id', name='fk_cofre_senha_setor'))
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_cofre_senha_cliente'))
     tx_nome = Column(String(300))
     tx_usuario = Column(String(50))
     tx_senha = Column(String(300))

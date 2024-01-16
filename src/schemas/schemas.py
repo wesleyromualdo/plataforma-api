@@ -4,20 +4,20 @@ from typing import Optional, List
 from datetime import datetime
 from sqlalchemy.sql import func
 
-class SetorPOST(BaseModel):
+class ClientePOST(BaseModel):
     tx_sigla: str
     tx_nome: str
-    nu_executor: Optional[int] = None
+    nu_worker: Optional[int] = None
     bo_status: Optional[bool] = True
     class Config:
         orm_mode = True
 
-class UsuarioSetorAcesso(BaseModel):
+class UsuarioClienteAcesso(BaseModel):
     nu_cpf: str
-    setor_id: int
+    cliente_id: int
     dt_ultimoacesso: Optional[datetime] = None
 
-class UsuarioSetor(BaseModel):
+class UsuarioCliente(BaseModel):
     id: int
 
 class UsuarioSimples(BaseModel):
@@ -28,12 +28,12 @@ class UsuarioSimples(BaseModel):
     class Config:
         orm_mode = True
 
-class Setor(SetorPOST):
+class Cliente(ClientePOST):
     id: Optional[int] = None    
     class Config:
         orm_mode = True
 
-class SetorLista(Setor):
+class ClienteLista(Cliente):
     usuarios: List[UsuarioSimples] = None    
     class Config:
         orm_mode = True
@@ -44,7 +44,7 @@ class UsuarioPOST(BaseModel):
     tx_email: EmailStr
     tx_foto: Optional[str] = None
     bo_status: Optional[bool] = True
-    setor: List[UsuarioSetor] = None
+    cliente: List[UsuarioCliente] = None
 
 class Usuario(BaseModel):
     nu_cpf: str
@@ -54,7 +54,7 @@ class Usuario(BaseModel):
     tx_foto: Optional[str] = None
     dt_inclusao: Optional[datetime] = None
     bo_status: Optional[bool] = True
-    setor: List[UsuarioSetor] = None
+    cliente: List[UsuarioCliente] = None
 
     class Config:
         orm_mode = True
@@ -66,7 +66,7 @@ class SenhaAcessoUsuario(BaseModel):
 
 class PerfilMenu(BaseModel):
     id: str
-    setor_id: int
+    cliente_id: int
 
 class PerfilPOST(BaseModel):
     tx_nome: str
@@ -124,7 +124,7 @@ class PerfilLista(Perfil):
         orm_mode = True
 
 class AutomacaoPOST(BaseModel):
-    setor_id: int
+    cliente_id: int
     tx_nome: Optional[str] = ''
     nu_cpf: Optional[str] = ''
     tx_descricao: Optional[str] = ''
@@ -136,8 +136,8 @@ class AutomacaoPOST(BaseModel):
     class Config:
         orm_mode = True
 
-class DownloadExecutorPOST(BaseModel):
-    setor_id: int
+class DownloadWorkerPOST(BaseModel):
+    cliente_id: int
     automacao_id: int
     tx_nome: str
     nu_cpf: Optional[str] = ''
@@ -153,7 +153,7 @@ class DownloadExecutorPOST(BaseModel):
     tx_hd_livre: Optional[str] = ''
     tx_diretorio: Optional[str] = ''
 
-class DownloadExecutor(DownloadExecutorPOST):
+class DownloadWorker(DownloadWorkerPOST):
     id: Optional[int] = None
     dt_download: Optional[datetime] = None
     dt_alive: Optional[datetime] = None
@@ -180,7 +180,7 @@ class AutomacaoID(BaseModel):
 class DadosAcessoUsuario(BaseModel):
     perfil: List[PerfilID]
     automacao: List[AutomacaoID]
-    setor_id:int
+    cliente_id:int
     nu_cpf: str
 
 class UsuarioLista(BaseModel):
@@ -190,7 +190,7 @@ class UsuarioLista(BaseModel):
     dt_inclusao: datetime
     bo_status: Optional[bool] = True
     tx_foto: Optional[str] = None
-    setor: List[Setor] = None
+    cliente: List[Cliente] = None
     perfil: List = None
     automacao: List = None
     class Config:
@@ -206,7 +206,7 @@ class PerfilUsuario(BaseModel):
 class AutomacaoUsuario(BaseModel):
     nu_cpf: str
     automacao_id: Optional[int] = None
-    setor_id: Optional[int] = None
+    cliente_id: Optional[int] = None
 
     class Config:
         orm_mode = True
@@ -214,7 +214,7 @@ class AutomacaoUsuario(BaseModel):
 class PerfilMenu(BaseModel):
     menu_id: int
     perfil_id: int
-    setor_id: int
+    cliente_id: int
 
     class Config:
         orm_mode = True
@@ -227,7 +227,7 @@ class PerfilMenu(BaseModel):
         orm_mode = True'''
 class IniciaTarefa(BaseModel):
     tarefa_id: int
-    setor_id: int
+    cliente_id: int
     automacao_id: Optional[int] = None
     nu_cpf: str
     tx_json: Optional[str] = None
@@ -235,7 +235,7 @@ class IniciaTarefa(BaseModel):
 class TarefaPOST(BaseModel):
     automacao_id: Optional[int] = None
     nu_cpf: Optional[str] = ''
-    setor_id: Optional[int] = None
+    cliente_id: Optional[int] = None
     tx_nome: Optional[str] = ''
     bo_agendada: Optional[bool] = False
     bo_execucao: Optional[bool] = False
@@ -271,9 +271,9 @@ class TarefaLista(Tarefa):
 
 class AutomacaoLista(Automacao):
     dt_inclusao: Optional[datetime] = None
-    setor: Optional[Setor] = None
+    cliente: Optional[Cliente] = None
     tarefa: List[Tarefa]
-    download: List[DownloadExecutor]
+    download: List[DownloadWorker]
     class Config:
         orm_mode = True
 
@@ -399,7 +399,7 @@ class AnexoScriptLista(AnexoScript):
         orm_mode = True
 
 class CofreSenhaPOST(BaseModel):
-    setor_id: int
+    cliente_id: int
     tx_nome: Optional[str] = ''
     tx_usuario: Optional[str] = ''
     tx_senha: Optional[str] = ''

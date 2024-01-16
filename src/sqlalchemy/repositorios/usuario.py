@@ -42,10 +42,10 @@ class RepositorioUsuario():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_usuario_by_setor(self, nu_cpf: str):
+    async def get_usuario_by_cliente(self, nu_cpf: str):
         try:
-            j = join(models.Setor, models.UsuarioSetor, models.Setor.id == models.UsuarioSetor.setor_id)
-            stmt = select(models.Setor).select_from(j).where(models.UsuarioSetor.nu_cpf == nu_cpf)
+            j = join(models.Cliente, models.UsuarioCliente, models.Cliente.id == models.UsuarioCliente.cliente_id)
+            stmt = select(models.Cliente).select_from(j).where(models.UsuarioCliente.nu_cpf == nu_cpf)
             db_orm = self.db.execute(stmt).scalars().all()
             return db_orm
         except:
@@ -57,7 +57,7 @@ class RepositorioUsuario():
         try:
             j = join(models.Automacao, models.AutomacaoUsuario, models.Automacao.id == models.AutomacaoUsuario.automacao_id)
             stmt = select([models.Automacao.id, models.Automacao.nu_cpf,
-                models.Automacao.setor_id,
+                models.Automacao.cliente_id,
                 models.Automacao.tx_nome,
                 models.Automacao.tx_descricao,
                 models.Automacao.nu_qtd_tarefa,
@@ -70,9 +70,9 @@ class RepositorioUsuario():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_all(self, nu_cpf, tx_nome, setor_id, bo_status, pagina, tamanho_pagina):
+    async def get_all(self, nu_cpf, tx_nome, cliente_id, bo_status, pagina, tamanho_pagina):
         try:
-            '''j = join(models.Usuario, models.UsuarioSetor, models.Usuario.nu_cpf == models.UsuarioSetor.nu_cpf)
+            '''j = join(models.Usuario, models.UsuarioCliente, models.Usuario.nu_cpf == models.UsuarioCliente.nu_cpf)
             result = self.db.query(models.Usuario).select_from(j)
 
             if nu_cpf:
@@ -81,13 +81,13 @@ class RepositorioUsuario():
             if tx_nome:
                 result = result.filter(models.Usuario.tx_nome == tx_nome)
 
-            if setor_id:
-                result = result.filter(models.UsuarioSetor.setor_id == setor_id)
+            if cliente_id:
+                result = result.filter(models.UsuarioCliente.cliente_id == cliente_id)
 
             if str(bo_status) and bo_status is not None:
                 result = result.filter(models.Usuario.bo_status == bo_status)
 
-            result = result.filter(models.Usuario.bo_executor == False)
+            result = result.filter(models.Usuario.bo_worker == False)
 
             if tamanho_pagina > 0:
                 result.offset(pagina).limit(tamanho_pagina)
@@ -101,22 +101,22 @@ class RepositorioUsuario():
             if str(bo_status) and bo_status is not None:
                 filtro += f" and u.bo_status = {bo_status}"
 
-            if setor_id:
-                filtro += f" and us.setor_id = {setor_id}"
+            if cliente_id:
+                filtro += f" and us.cliente_id = {cliente_id}"
 
             if tx_nome:
                 filtro += f" and u.tx_nome ilike '%{tx_nome}%'"
 
-            sql = f"""SELECT u.nu_cpf, u.tx_nome, u.tx_email, u.bo_status, u.dt_inclusao, u.bo_executor,
-                        array_agg(DISTINCT p.bo_superuser) AS perfil, array_agg(DISTINCT s.tx_sigla) AS setor
+            sql = f"""SELECT u.nu_cpf, u.tx_nome, u.tx_email, u.bo_status, u.dt_inclusao, u.bo_worker,
+                        array_agg(DISTINCT p.bo_superuser) AS perfil, array_agg(DISTINCT s.tx_sigla) AS cliente
                     FROM usuario u 
-                        INNER JOIN usuario_setor us ON us.nu_cpf = u.nu_cpf
+                        INNER JOIN usuario_cliente us ON us.nu_cpf = u.nu_cpf
                         INNER JOIN perfil_usuario pu ON pu.nu_cpf = u.nu_cpf
                         INNER JOIN perfil p ON p.id = pu.perfil_id
-                        INNER JOIN setor s ON s.id = us.setor_id AND s.bo_status = TRUE
-                    WHERE u.bo_executor = FALSE
+                        INNER JOIN cliente s ON s.id = us.cliente_id AND s.bo_status = TRUE
+                    WHERE u.bo_worker = FALSE
                         {filtro} 
-                    GROUP BY u.nu_cpf, u.tx_nome, u.tx_email, u.bo_status, u.dt_inclusao, u.bo_executor
+                    GROUP BY u.nu_cpf, u.tx_nome, u.tx_email, u.bo_status, u.dt_inclusao, u.bo_worker
                     ORDER BY u.tx_nome"""
             result = self.db.execute(sql).all()
             return result
@@ -136,12 +136,12 @@ class RepositorioUsuario():
                 self.db.add(db_orm)
 
             if ormP.automacao:
-                await self.deleteAutomacao(ormP.nu_cpf, ormP.setor_id)
+                await self.deleteAutomacao(ormP.nu_cpf, ormP.cliente_id)
                 for automacao in ormP.automacao:
                     db_orm = models.AutomacaoUsuario(
                         nu_cpf = ormP.nu_cpf,
                         automacao_id = automacao.id,
-                        setor_id = ormP.setor_id
+                        cliente_id = ormP.cliente_id
                     )        
                     self.db.add(db_orm)
 
@@ -162,11 +162,11 @@ class RepositorioUsuario():
                 tx_email = orm.tx_email
             )
             self.db.add(db_orm)
-            #print(orm.setor_id)
-            for setor in orm.setor:
-                db_uss = models.UsuarioSetor(
+            #print(orm.cliente_id)
+            for cliente in orm.cliente:
+                db_uss = models.UsuarioCliente(
                     nu_cpf = orm.nu_cpf,
-                    setor_id = setor.id
+                    cliente_id = cliente.id
                 )
             
             self.db.add(db_uss)
@@ -222,14 +222,14 @@ class RepositorioUsuario():
             )
             db_orm = self.db.execute(stmt)
 
-            if orm.setor:
-                await self.deleteSetor(orm.nu_cpf)
-                for setor in orm.setor:
-                    db_setor = models.UsuarioSetor(
+            if orm.cliente:
+                await self.deleteCliente(orm.nu_cpf)
+                for cliente in orm.cliente:
+                    db_cliente = models.UsuarioCliente(
                         nu_cpf = orm.nu_cpf,
-                        setor_id = setor.id,
+                        cliente_id = cliente.id,
                     )
-                    self.db.add(db_setor)
+                    self.db.add(db_cliente)
 
             self.db.commit()
             
@@ -254,9 +254,9 @@ class RepositorioUsuario():
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
             return {'status': 1, 'message': error}
 
-    async def deleteSetor(self, nu_cpf: str):
+    async def deleteCliente(self, nu_cpf: str):
         try:
-            stmt = delete(models.UsuarioSetor).where(models.UsuarioSetor.nu_cpf == nu_cpf)
+            stmt = delete(models.UsuarioCliente).where(models.UsuarioCliente.nu_cpf == nu_cpf)
             self.db.execute(stmt)
             self.db.commit()
         except:
@@ -274,9 +274,9 @@ class RepositorioUsuario():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def deleteAutomacao(self, nu_cpf: str, setor_id: int):
+    async def deleteAutomacao(self, nu_cpf: str, cliente_id: int):
         try:
-            stmt = delete(models.AutomacaoUsuario).where(models.AutomacaoUsuario.nu_cpf == nu_cpf).where(models.AutomacaoUsuario.setor_id == setor_id)
+            stmt = delete(models.AutomacaoUsuario).where(models.AutomacaoUsuario.nu_cpf == nu_cpf).where(models.AutomacaoUsuario.cliente_id == cliente_id)
             self.db.execute(stmt)
             self.db.commit()
         except:
