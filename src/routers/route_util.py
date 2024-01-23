@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Query
-import socket
+import socket, requests
 import platform, os, pytz
 from src.utils import utils
 from typing import List, Optional
@@ -32,7 +32,25 @@ async def pega_variaveis():
     utc_dt = datetime.now(timezone.utc)
     dataErro = utc_dt.astimezone(AMSP)
 
-    return {'var': var, 'now': datetime.now(), 'timezone': datetime.now(timezone.utc), 'timezone2': datetime.now(timezone.utc).astimezone(AMSP), 'dataErro': dataErro, 'envs': envs}
+    response = requests.get('http://169.254.169.254/latest/meta-data/iam/security-credentials/MyIAMRole')
+    if response.status_code == 200:
+        data = response.json()
+        os.environ['AWS_ACCESS_KEY_ID'] = data['AccessKeyId']
+        os.environ['AWS_SECRET_ACCESS_KEY'] = data['SecretAccessKey']
+        os.environ['AWS_SESSION_TOKEN'] = data['Token']
+    else:
+        raise Exception('Failed to get AWS credentials')
+    
+    response = requests.get(f"http://169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
+    if response.status_code == 200:
+        data1 = response.json()
+        os.environ['AWS_ACCESS_KEY_ID'] = data1['AccessKeyId']
+        os.environ['AWS_SECRET_ACCESS_KEY'] = data1['SecretAccessKey']
+        os.environ['AWS_SESSION_TOKEN'] = data1['Token']
+    else:
+        raise Exception('Failed to get AWS credentials')
+
+    return {'var': var, 'now': datetime.now(), 'timezone': datetime.now(timezone.utc), 'timezone2': datetime.now(timezone.utc).astimezone(AMSP), 'dataErro': dataErro, 'data': data, 'data1':data1}
 
 @router.get("/envio-email", tags=['Util'], status_code=status.HTTP_200_OK)
 async def carrega_tarefas_por_usuario(subject: Optional[str] = Query(default=None, max_length=200), 
