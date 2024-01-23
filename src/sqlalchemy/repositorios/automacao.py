@@ -215,7 +215,7 @@ class RepositorioAutomacao():
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
     def set_credentials(self):
-        response = requests.get(f"{os.environ['AWS_CONTAINER_IP']}{os.environ['AWS_CONTAINER_CREDENTIALS_RELATIVE_URI']}")
+        response = requests.get(f"169.254.170.2{os.environ['AWS_CONTAINER_CREDENTIALS_RELATIVE_URI']}")
 
         if response.status_code == 200:
             data = response.json()
@@ -233,7 +233,6 @@ class RepositorioAutomacao():
 
     async def gerar_worker_cliente(self, dados):
         try:
-            self.set_credentials()
             cpf = ''
             for i in range(0,10):
                 cpf = str(cpf)+str(random.randint(0,9))
@@ -292,9 +291,12 @@ class RepositorioAutomacao():
             self.db.add(db_uss)
             self.db.commit()
 
+            stmt = select(models.Perfil).where(models.Perfil.constante_virtual == 'ROBO_EXECUTOR')
+            db_ormPerfil = self.db.execute(stmt).scalars().first()
+
             db_ormP = models.PerfilUsuario(
                 nu_cpf = cpf,
-                perfil_id = 4
+                perfil_id = db_ormPerfil.id
             )
             self.db.add(db_ormP)
             self.db.commit()
@@ -310,6 +312,7 @@ class RepositorioAutomacao():
             stmt = update(models.Automacao).where(models.Automacao.id == dados.id).values(
                 tx_json = str(config_json)
             )
+            utils.grava_error_arquivo({"error": f"""{config_json}""","data": ''})
             self.db.execute(stmt)
             self.db.commit()
 
@@ -327,12 +330,11 @@ class RepositorioAutomacao():
             if os.path.isfile(str(os.getcwd()).replace('/', '/')+'/worker.json'):
                 os.remove(os.getcwd()+'/worker.json')
 
+            self.set_credentials()
             filename_s3 = str(dados.tx_nome)+'.zip'
-            object_name = f"arquivos/workers/{tx_sigla}/{filename_s3}"
-            print(object_name)
+            object_name = f"workers/{tx_sigla}/{filename_s3}"
             #s3_client = boto3.client('s3', aws_access_key_id=configJson['AWS_ACCESS_KEY_ID'], aws_secret_access_key=configJson['AWS_SECRET_ACCESS_KEY'])
             response = self.s3_client.upload_file(dir_cliente, configJson['S3_BUCKET'], object_name)
-            print(response)
 
         except:
             utc_dt = datetime.now(timezone.utc)
