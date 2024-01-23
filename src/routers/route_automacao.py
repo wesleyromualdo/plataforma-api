@@ -123,7 +123,7 @@ async def pegar_automacao_usuario(nu_cpf: str, cliente_id: int, periodo:int, db:
     return retorno
 
 @router.get("/automacao/aws", tags=['Automação'], status_code=status.HTTP_200_OK)
-async def pegar_dados():
+async def pegar_dados(db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     retorno = os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')
     return retorno
 
