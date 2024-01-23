@@ -124,7 +124,7 @@ async def pegar_automacao_usuario(nu_cpf: str, cliente_id: int, periodo:int, db:
 
 @router.get("/automacao/aws", tags=['Automação'], status_code=status.HTTP_200_OK)
 async def pegar_dados():
-    retorno = os.environ.get('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')
+    retorno = os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')
     return retorno
 
 @router.delete("/automacao/{automacao_id}", tags=['Automação'], status_code=status.HTTP_200_OK)

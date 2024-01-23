@@ -215,7 +215,7 @@ class RepositorioAutomacao():
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
     def set_credentials(self):
-        response = requests.get(f"169.254.170.2{os.environ.get('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
+        response = requests.get(f"169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
 
         if response.status_code == 200:
             data = response.json()
