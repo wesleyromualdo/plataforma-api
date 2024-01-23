@@ -62,6 +62,7 @@ async def inserir_automacao(model: schemas.AutomacaoPOST, db: Session = Depends(
 @router.post("/automacao/worker/", tags=['Automação'], status_code=status.HTTP_201_CREATED)
 async def gravar_worker(model: schemas.AutomacaoPOST, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     retorno = await RepositorioAutomacao(db).get_automacao_by_nome(model.tx_nome)    
+    
     if retorno:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Já existe um Automacao cadastrado com esse Nome: {retorno.id} - {model.tx_nome} informado!')
     retorno = await RepositorioAutomacao(db).gravar_worker(model)
@@ -130,7 +131,7 @@ async def apagar_automacao(automacao_id: int, db: Session = Depends(get_db), usu
 async def download_worker(automacao_id: int,db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     try:
         retorno = await RepositorioAutomacao(db).get_by_id_sql(automacao_id)
-        cliente = await Repositoriocliente(db).get_by_id(retorno.cliente_id)
+        cliente = await RepositorioCliente(db).get_by_id(retorno.cliente_id)
         tx_sigla = str(retorno.cliente_id)+'_'+str(cliente.tx_sigla).replace(' ', '').lower()
 
         file_name = str(retorno.tx_nome)+'.zip'

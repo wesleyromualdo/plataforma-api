@@ -3,7 +3,7 @@
     },
     "conexao": {
     },
-    "url_console": "https://plataforma-api.automaxia.com.br",
+    "url": "https://plataforma-api.automaxia.com.br",
     "config_email": {
         "fromaddr": "roborpabsb@gmail.com",
         "password": "radoeyyqwuhtainh",

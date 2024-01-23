@@ -10,7 +10,7 @@ from src.sqlalchemy.repositorios import usuario
 
 import json
 from src.providers import hash_provider
-import string, boto3
+import string, boto3, requests
 from dotenv import dotenv_values
 
 import pytz
@@ -24,6 +24,9 @@ AMSP = pytz.timezone('America/Sao_Paulo')
 class RepositorioAutomacao():
 
     def __init__(self, db: Session):
+        self.event_bridge_client = None
+        self.lambda_client = None
+        self.s3_client = None
         self.db = db
 
     async def get_by_id(self, id: int):
@@ -211,8 +214,26 @@ class RepositorioAutomacao():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
+    def set_credentials(self):
+        response = requests.get(f"{os.environ['AWS_CONTAINER_IP']}{os.environ['AWS_CONTAINER_CREDENTIALS_RELATIVE_URI']}")
+
+        if response.status_code == 200:
+            data = response.json()
+            session = boto3.Session(
+                aws_access_key_id=data['AccessKeyId'],
+                aws_secret_access_key=data['SecretAccessKey'],
+                aws_session_token=data['Token']
+            )
+
+            self.event_bridge_client = session.client('events')
+            self.lambda_client = session.client('lambda')
+            self.s3_client = session.client('s3')
+        else:
+            raise Exception('Credentials request failed')
+
     async def gerar_worker_cliente(self, dados):
         try:
+            self.set_credentials()
             cpf = ''
             for i in range(0,10):
                 cpf = str(cpf)+str(random.randint(0,9))
@@ -246,7 +267,7 @@ class RepositorioAutomacao():
             senha_hash = await hash_provider.gerar_hash(senha)
 
             config_json = {
-                "url_console": f"{tx_json['url_console']}",
+                "url": f"{tx_json['url']}",
                 "username": f"{cpf}",
                 "password": f"{senha_hash}",
                 "worker": 'WORKER_'+str(dados.tx_nome).upper().replace('@',''),
@@ -294,7 +315,7 @@ class RepositorioAutomacao():
 
             config = dotenv_values(".env")
             configJson = json.loads((json.dumps(config) ))
-            config_json = {"url_console": f"{configJson['URL_BACK_AUTOMAXIA']}", "worker": 'WORKER_'+str(dados.tx_nome).upper().replace('@','')}
+            config_json = {"url": f"{configJson['URL_BACK_AUTOMAXIA']}", "worker": 'WORKER_'+str(dados.tx_nome).upper().replace('@','')}
 
             with ZipFile(dir_cliente, 'a') as myzip:
                 #with myzip.open('workers-setup/config.json','r') as myfile:
@@ -308,8 +329,10 @@ class RepositorioAutomacao():
 
             filename_s3 = str(dados.tx_nome)+'.zip'
             object_name = f"arquivos/workers/{tx_sigla}/{filename_s3}"
-            s3_client = boto3.client('s3', aws_access_key_id=configJson['AWS_ACCESS_KEY_ID'], aws_secret_access_key=configJson['AWS_SECRET_ACCESS_KEY'])
-            response = s3_client.upload_file(dir_cliente, configJson['S3_BUCKET'], object_name)
+            print(object_name)
+            #s3_client = boto3.client('s3', aws_access_key_id=configJson['AWS_ACCESS_KEY_ID'], aws_secret_access_key=configJson['AWS_SECRET_ACCESS_KEY'])
+            response = self.s3_client.upload_file(dir_cliente, configJson['S3_BUCKET'], object_name)
+            print(response)
 
         except:
             utc_dt = datetime.now(timezone.utc)
