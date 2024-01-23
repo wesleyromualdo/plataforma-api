@@ -312,7 +312,7 @@ class RepositorioAutomacao():
             stmt = update(models.Automacao).where(models.Automacao.id == dados.id).values(
                 tx_json = str(config_json)
             )
-            utils.grava_error_arquivo({"error": f"""{config_json}""","data": ''})
+            #utils.grava_error_arquivo({"error": f"""{config_json}""","data": ''})
             self.db.execute(stmt)
             self.db.commit()
 
