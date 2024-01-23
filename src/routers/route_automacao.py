@@ -122,18 +122,6 @@ async def pegar_automacao_usuario(nu_cpf: str, cliente_id: int, periodo:int, db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o CPF: {nu_cpf} informado!')
     return retorno
 
-@router.get("/automacao/aws", tags=['Automação'], status_code=status.HTTP_200_OK)
-async def pegar_dados():
-    retorno = os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')
-    return retorno
-
-@router.get("/automacao/aws1", tags=['Automação'], status_code=status.HTTP_200_OK)
-async def pegar_datas():
-    #retorno = os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')
-    utc_dt = datetime.now(timezone.utc)
-    dataErro = utc_dt.astimezone(AMSP)
-    return datetime.now(), datetime.now(timezone.utc), datetime.now(timezone.utc).astimezone(AMSP),dataErro
-
 @router.delete("/automacao/{automacao_id}", tags=['Automação'], status_code=status.HTTP_200_OK)
 async def apagar_automacao(automacao_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     retorno = await RepositorioAutomacao(db).delete(automacao_id)
