@@ -214,8 +214,8 @@ class RepositorioAutomacao():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    def set_credentials(self):
-        response = requests.get(f"169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
+    def gravar_s3_aws(self, object_name, dir_cliente, bucket_name):
+        response = requests.get(f"http://169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
         #/v2/credentials/65b80715-ac9d-4752-88b3-b927bc830a6f
         if response.status_code == 200:
             data = response.json()
@@ -227,7 +227,9 @@ class RepositorioAutomacao():
 
             self.event_bridge_client = session.client('events')
             self.lambda_client = session.client('lambda')
-            self.s3_client = session.client('s3')
+            #self.s3_client = session.client('s3')
+            s3_client = boto3.client('s3', aws_access_key_id=data['AccessKeyId'], aws_secret_access_key=data['SecretAccessKey'])
+            response = s3_client.upload_file(dir_cliente, bucket_name, object_name)
         else:
             raise Exception('Credentials request failed')
 
@@ -330,11 +332,9 @@ class RepositorioAutomacao():
             if os.path.isfile(str(os.getcwd()).replace('/', '/')+'/worker.json'):
                 os.remove(os.getcwd()+'/worker.json')
 
-            self.set_credentials()
             filename_s3 = str(dados.tx_nome)+'.zip'
             object_name = f"workers/{tx_sigla}/{filename_s3}"
-            #s3_client = boto3.client('s3', aws_access_key_id=configJson['AWS_ACCESS_KEY_ID'], aws_secret_access_key=configJson['AWS_SECRET_ACCESS_KEY'])
-            response = self.s3_client.upload_file(dir_cliente, configJson['S3_BUCKET'], object_name)
+            self.gravar_s3_aws(object_name, dir_cliente, configJson['S3_BUCKET'])
 
         except:
             utc_dt = datetime.now(timezone.utc)

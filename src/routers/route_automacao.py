@@ -142,7 +142,6 @@ async def download_worker(automacao_id: int,db: Session = Depends(get_db), usuar
         
         config = dotenv_values(".env")
         config = json.loads((json.dumps(config) ))
-        #s3_client = boto3.client('s3', aws_access_key_id=config['AWS_ACCESS_KEY_ID'], aws_secret_access_key=config['AWS_SECRET_ACCESS_KEY'])
 
         response = requests.get(f"http://169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
         #/v2/credentials/65b80715-ac9d-4752-88b3-b927bc830a6f
@@ -156,7 +155,7 @@ async def download_worker(automacao_id: int,db: Session = Depends(get_db), usuar
 
             event_bridge_client = session.client('events')
             lambda_client = session.client('lambda')
-            s3_client = session.client('s3')
+            s3_client = boto3.client('s3', aws_access_key_id=data['AccessKeyId'], aws_secret_access_key=data['SecretAccessKey'])
         else:
             return {'status': response.status_code, 'detail': f'O arquivo {file_name} não foi encontrado no diretório!'}
 
