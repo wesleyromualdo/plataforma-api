@@ -187,4 +187,4 @@ async def download_worker(automacao_id: int,db: Session = Depends(get_db), usuar
         utc_dt = datetime.now(timezone.utc)
         dataErro = utc_dt.astimezone(AMSP)
         utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
-        return {'detail': f'Erro na execução: '+str(error)}
+        return {'detail': f'Erro na execução: '+str(traceback.format_exc())}
