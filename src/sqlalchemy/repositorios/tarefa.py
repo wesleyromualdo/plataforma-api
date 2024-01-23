@@ -619,11 +619,15 @@ class RepositorioTarefa():
         try:
             automacao = await self.pega_automacao_espera(orm.automacao_id, orm.cliente_id)
 
+            utc_dt = datetime.now(timezone.utc)
+            dt_inicio = utc_dt.astimezone(AMSP)
+
             db_orm = models.TarefaHistorico(
                 tarefa_id = orm.tarefa_id,
                 automacao_id = orm.automacao_id,
                 nu_cpf = orm.nu_cpf,
                 tx_ip_execucao = automacao.tx_ip_mac,
+                dt_inicio = dt_inicio,
                 tx_json = orm.tx_json
             )
             self.db.add(db_orm)
@@ -655,9 +659,12 @@ class RepositorioTarefa():
 
     async def parar_tarefa(self, orm: schemas.TarefaHistorico):
         try:
+            utc_dt = datetime.now(timezone.utc)
+            dt_fim = utc_dt.astimezone(AMSP)
+
             historico = await self.get_historico_tarefa_by_tarefa_id(orm.tarefa_id)
             stmt = update(models.TarefaHistorico).where(models.TarefaHistorico.id == historico.id).values(
-                dt_fim = orm.dt_fim,
+                dt_fim = dt_fim,
                 bo_status_code = orm.bo_status_code,
                 tx_resumo = orm.tx_resumo
             )
@@ -713,6 +720,7 @@ class RepositorioTarefa():
     async def post(self, orm: schemas.Tarefa):
         try:
             utc_dt = datetime.now(timezone.utc)
+            dt_alteracao = utc_dt.astimezone(AMSP)
             db_orm = models.Tarefa(
                 tx_nome = orm.tx_nome,
                 nu_cpf = orm.nu_cpf,
@@ -726,7 +734,7 @@ class RepositorioTarefa():
                 tx_situacao = 'Criada',
                 nu_prioridade = orm.nu_prioridade,
                 tx_constante_virtual = orm.tx_constante_virtual,
-                dt_alteracao = utc_dt.astimezone(AMSP)
+                dt_alteracao = dt_alteracao
             )
             self.db.add(db_orm)
             self.db.commit()
