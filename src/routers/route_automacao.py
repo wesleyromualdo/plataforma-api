@@ -155,17 +155,17 @@ async def download_worker(automacao_id: int,db: Session = Depends(get_db), usuar
 
             event_bridge_client = session.client('events')
             lambda_client = session.client('lambda')
-            s3_client = boto3.client('s3', aws_access_key_id=data['AccessKeyId'], aws_secret_access_key=data['SecretAccessKey'])
-        else:
-            return {'status': response.status_code, 'detail': f'O arquivo {file_name} não foi encontrado no diretório!'}
-
-        object_name = f"arquivos/workers/{tx_sigla}/{file_name}"
+            s3_client = session.client('s3')
+            object_name = f"arquivos/workers/{tx_sigla}/{file_name}"
         
-        s3_client.download_file(
-            Bucket=config['S3_BUCKET'],
-            Key=object_name,
-            Filename=file_path
-        )
+            s3_client.download_file(
+                Bucket=config['S3_BUCKET'],
+                Key=object_name,
+                Filename=file_path
+            )
+            #s3_client = boto3.client('s3', aws_access_key_id=data['AccessKeyId'], aws_secret_access_key=data['SecretAccessKey'])
+        else:
+            return {'status': response.status_code, 'detail': f'Não conectou no AWS'}
         
         if (int(retorno.total_donwload) +1) > int(retorno.nu_qtd_download):
             return {'detail': f'A quantidade permitida de download foi atingida.'}

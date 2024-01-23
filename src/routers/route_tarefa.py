@@ -20,7 +20,7 @@ from datetime import datetime, date, timezone
 import pytz, os, json
 from src.utils import utils
 from dotenv import dotenv_values
-import boto3, botocore
+import boto3, botocore, requests
 
 AMSP = pytz.timezone('America/Sao_Paulo')
 
@@ -325,10 +325,28 @@ async def uploadScripts(file: UploadFile, tarefa_id: str, nu_cpf: str, db: Sessi
 
         object_name = f"arquivos/automacoes/{tx_sigla}/{filename_s3}"
 
-        link = f"{config['URL_S3']}/{tx_sigla}/{filename_s3}"
-        s3_client = boto3.client('s3', aws_access_key_id=config['AWS_ACCESS_KEY_ID'], aws_secret_access_key=config['AWS_SECRET_ACCESS_KEY'])
+        response = requests.get(f"http://169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
+        #/v2/credentials/65b80715-ac9d-4752-88b3-b927bc830a6f
+        if response.status_code == 200:
+            data = response.json()
+            session = boto3.Session(
+                aws_access_key_id=data['AccessKeyId'],
+                aws_secret_access_key=data['SecretAccessKey'],
+                aws_session_token=data['Token']
+            )
 
-        response = s3_client.upload_file(diretorio+file.filename, config['S3_BUCKET'], object_name)
+            event_bridge_client = session.client('events')
+            lambda_client = session.client('lambda')
+            s3_client = session.client('s3')
+        
+            link = f"{config['URL_S3']}/{tx_sigla}/{filename_s3}"
+            #s3_client = boto3.client('s3', aws_access_key_id=config['AWS_ACCESS_KEY_ID'], aws_secret_access_key=config['AWS_SECRET_ACCESS_KEY'])
+
+            #s3_client.upload_fileobj(file.file._file, config['S3_BUCKET'], object_name)
+            response = s3_client.upload_file(diretorio+file.filename, config['S3_BUCKET'], object_name)
+            #s3_client = boto3.client('s3', aws_access_key_id=data['AccessKeyId'], aws_secret_access_key=data['SecretAccessKey'])
+        else:
+            return {'status': response.status_code, 'detail': f'Não conectou no AWS'}
 
         file_stats = os.stat(diretorio+file.filename)
         size = file_stats.st_size
