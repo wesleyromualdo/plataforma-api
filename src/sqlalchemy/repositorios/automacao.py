@@ -227,8 +227,8 @@ class RepositorioAutomacao():
 
             self.event_bridge_client = session.client('events')
             self.lambda_client = session.client('lambda')
-            #self.s3_client = session.client('s3')
-            s3_client = boto3.client('s3', aws_access_key_id=data['AccessKeyId'], aws_secret_access_key=data['SecretAccessKey'])
+            s3_client = session.client('s3')
+            #s3_client = boto3.client('s3', aws_access_key_id=data['AccessKeyId'], aws_secret_access_key=data['SecretAccessKey'])
             response = s3_client.upload_file(dir_cliente, bucket_name, object_name)
         else:
             raise Exception('Credentials request failed')
@@ -333,7 +333,7 @@ class RepositorioAutomacao():
                 os.remove(os.getcwd()+'/worker.json')
 
             filename_s3 = str(dados.tx_nome)+'.zip'
-            object_name = f"workers/{tx_sigla}/{filename_s3}"
+            object_name = f"arquivos/workers/{tx_sigla}/{filename_s3}"
             self.gravar_s3_aws(object_name, dir_cliente, configJson['S3_BUCKET'])
 
         except:
