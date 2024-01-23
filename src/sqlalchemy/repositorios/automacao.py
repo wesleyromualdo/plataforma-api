@@ -216,7 +216,7 @@ class RepositorioAutomacao():
 
     def set_credentials(self):
         response = requests.get(f"169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
-
+        #/v2/credentials/65b80715-ac9d-4752-88b3-b927bc830a6f
         if response.status_code == 200:
             data = response.json()
             session = boto3.Session(

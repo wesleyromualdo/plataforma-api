@@ -26,8 +26,8 @@ async def pega_variaveis():
 
     env_var = os.environ
     envs = []
-    for env in env_var:
-        envs.append({'env': env, 'valor': env_var[env]})
+    #for env in env_var:
+    #    envs.append({'env': env, 'valor': env_var[env]})
 
     utc_dt = datetime.now(timezone.utc)
     dataErro = utc_dt.astimezone(AMSP)
