@@ -43,6 +43,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=config['AUTOFLUSH'], bin
 # Adicionar o evento de engine connect
 event.listen(engine, 'connect', set_timezone)
 
+
+@event.listens_for(SessionLocal, 'after_begin')
+def receive_after_begin(session, transaction, connection):
+    session.execute("SET TIME ZONE 'America/Sao_Paulo';")
+
 Base = declarative_base()
 
 def criar_db():
