@@ -214,25 +214,6 @@ class RepositorioAutomacao():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    def gravar_s3_aws(self, object_name, dir_cliente, bucket_name):
-        response = requests.get(f"http://169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
-        #/v2/credentials/65b80715-ac9d-4752-88b3-b927bc830a6f
-        if response.status_code == 200:
-            data = response.json()
-            session = boto3.Session(
-                aws_access_key_id=data['AccessKeyId'],
-                aws_secret_access_key=data['SecretAccessKey'],
-                aws_session_token=data['Token']
-            )
-
-            self.event_bridge_client = session.client('events')
-            self.lambda_client = session.client('lambda')
-            s3_client = session.client('s3')
-            #s3_client = boto3.client('s3', aws_access_key_id=data['AccessKeyId'], aws_secret_access_key=data['SecretAccessKey'])
-            response = s3_client.upload_file(dir_cliente, bucket_name, object_name)
-        else:
-            raise Exception('Credentials request failed')
-
     async def gerar_worker_cliente(self, dados):
         try:
             cpf = ''
@@ -341,6 +322,25 @@ class RepositorioAutomacao():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
             return {"detail": f"""{traceback.format_exc()}""","data": str(dataErro)}
+        
+    def gravar_s3_aws(self, object_name, dir_cliente, bucket_name):
+        response = requests.get(f"http://169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
+        #/v2/credentials/65b80715-ac9d-4752-88b3-b927bc830a6f
+        if response.status_code == 200:
+            data = response.json()
+            session = boto3.Session(
+                aws_access_key_id=data['AccessKeyId'],
+                aws_secret_access_key=data['SecretAccessKey'],
+                aws_session_token=data['Token']
+            )
+
+            event_bridge_client = session.client('events')
+            lambda_client = session.client('lambda')
+            s3_client = session.client('s3')
+            #s3_client = boto3.client('s3', aws_access_key_id=data['AccessKeyId'], aws_secret_access_key=data['SecretAccessKey'])
+            response = s3_client.upload_file(dir_cliente, bucket_name, object_name)
+        else:
+            raise Exception('Credentials request failed')
 
     async def gravar_worker(self, orm: schemas.Automacao):
         try:

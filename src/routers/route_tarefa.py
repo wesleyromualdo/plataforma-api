@@ -343,6 +343,7 @@ async def uploadScripts(file: UploadFile, tarefa_id: str, nu_cpf: str, db: Sessi
             #s3_client = boto3.client('s3', aws_access_key_id=config['AWS_ACCESS_KEY_ID'], aws_secret_access_key=config['AWS_SECRET_ACCESS_KEY'])
 
             #s3_client.upload_fileobj(file.file._file, config['S3_BUCKET'], object_name)
+            #utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
             response = s3_client.upload_file(diretorio+file.filename, config['S3_BUCKET'], object_name)
             #s3_client = boto3.client('s3', aws_access_key_id=data['AccessKeyId'], aws_secret_access_key=data['SecretAccessKey'])
         else:

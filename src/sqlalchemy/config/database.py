@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
@@ -19,6 +19,11 @@ connect_args = {
     "keepalives_count": config['KEEPALIVES_COUNT']
 }
 
+def set_timezone(dbapi_conn, connection_record):
+    cursor = dbapi_conn.cursor()
+    cursor.execute("SET TIME ZONE 'America/Sao_Paulo';")
+    cursor.close()
+
 #POOL_SIZE: O tamanho do pool a ser mantido, padronizado como 5. Este é o maior número de conexões que serão mantidas persistentemente no pool,
 #    pode ser definido como 0 para indicar nenhum limite de tamanho
 
@@ -34,6 +39,9 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL, pool_pre_ping=True, connect_args
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=config['AUTOFLUSH'], bind=engine, expire_on_commit=config['EXPIRE_ON_COMMIT'], future=True)
 #SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=True, future=True)
+
+# Adicionar o evento de engine connect
+event.listen(engine, 'connect', set_timezone)
 
 Base = declarative_base()
 
