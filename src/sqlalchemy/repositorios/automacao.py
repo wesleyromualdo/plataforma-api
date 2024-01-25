@@ -307,7 +307,7 @@ class RepositorioAutomacao():
                 #with myzip.open('workers-setup/config.json','r') as myfile:
                 with open(str(os.getcwd()).replace('/', '/')+'/worker.json', "a", encoding='utf_8_sig') as outfile:
                     outfile.write(str(config_json).replace("'", '"'))
-                myzip.write('workers.json')
+                myzip.write('worker.json')
                 myzip.close()
 
             if os.path.isfile(str(os.getcwd()).replace('/', '/')+'/worker.json'):
