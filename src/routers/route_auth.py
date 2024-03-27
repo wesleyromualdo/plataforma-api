@@ -24,7 +24,7 @@ class RouteErrorHandler(APIRoute):
                 if isinstance(ex, HTTPException):
                     raise ex
                 print(ex)
-                raise HTTPException(status_code=500, detail=str({'status': 1, 'message': ex}))
+                raise HTTPException(status_code=500, detail=str({'status': 1, 'detail': ex}))
         return custom_route_handler
 
 router = APIRouter(tags=['Auth'], route_class=RouteErrorHandler)

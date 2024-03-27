@@ -10,7 +10,7 @@ class ConsoleApi:
     def __init__(self, url):
 
         self.url = url
-        _user = '00000000191'
+        _user = '05646593638'
         _pass = '$2b$12$rfnrdFhgKa7RDiXtxTidU.s5k4yj5W4pFRyg5Zh8w2uzPsNkO92qq'
         self.tokenacesso = str(self.login(_user, _pass)).strip()
         #print(self.tokenacesso)
@@ -57,13 +57,12 @@ class ConsoleApi:
         response = self.get(url)
         return response
 
-    def gravar_log_execucao(self, historico_tarefa_id, tx_descricao, tx_status="success", tx_acao_auxiliar="", tx_json=""):
+    def gravar_log_execucao(self, historico_tarefa_id, tx_descricao, tx_status="success", tx_json=""):
         url = str(self.url)+"/logs/"
 
         payload = {
             "historico_tarefa_id": historico_tarefa_id,
             "tx_status": f"{tx_status}",
-            "tx_acao_auxiliar": f"{tx_acao_auxiliar}",
             "tx_descricao": f"{tx_descricao}",
             "tx_json": f"{tx_json}"
         }
@@ -134,7 +133,7 @@ class ConsoleApi:
             response = requests.request("POST", url, headers=self.headers, data=payload)
             
             if( 'detail' not in response.json() and response.json() is not None):
-                response = {'message': 'Registro inserido com sucesso!', 'id': response.json()['id']}
+                response = {'detail': 'Registro inserido com sucesso!', 'id': response.json()['id']}
             else:
                 response = response.json()
             return response

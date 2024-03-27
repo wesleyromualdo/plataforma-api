@@ -4,10 +4,13 @@ from fastapi.responses import PlainTextResponse
 
 from src.routers import (route_auth, route_dados_negocial, route_worker, route_logs, route_menu, 
     route_perfil, route_cliente, route_tarefa, route_usuario, route_automacao, route_util, route_script,
-    route_arquivos, route_controleexecucao, route_cofresenha)
+    route_arquivos, route_controleexecucao, route_cofresenha, route_configuracao)
 
 from src.jobs.write_notification import write_notification
 #from fastapi_socketio import SocketManager
+
+from starlette.applications import Starlette
+from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
 
 '''from Controllers.MenuController import MenuController
 from Controllers.ClienteController import ClienteController
@@ -79,25 +82,61 @@ tags_metadata = [
     {
         "name": "Cofre Senha",
         "description": "Este serviço tem o objetivo gerar um cofre de senha",
+    },
+    {
+        "name": "Configuração",
+        "description": "Este serviço tem o objetivo gerar variaveis de configuração para a aplicação",
     }
 ]
+
+'''import requests
+try:
+    response = requests.get('http://apm-server.logging.svc.cluster.local:8200')
+    response.raise_for_status()  # Raises a HTTPError if the status is 4xx, 5xx
+except requests.exceptions.RequestException as err:
+    print(f"URL check failed: {err}")
+else:
+    print("URL check succeeded.")'''
 
 app = FastAPI(title="AUTOMAXIA AUTOMATION", openapi_tags=tags_metadata)
 #socket_manager = SocketManager(app=app)
 # CORS
+
+apm = make_apm_client({
+    'SERVICE_NAME': 'plataforma-api',
+    'SECRET_TOKEN': 'P2JU0etR_1_-rhcmtojcXcCov8s',
+    'SERVER_URL': 'http://apm-server.logging.svc.cluster.local:8200',
+    'CAPTURE_HEADERS': True,
+    'CAPTURE_BODY': 'all',
+    'DEBUG': True,
+    'LOG_LEVEL': 'DEBUG'
+})
+app.add_middleware(ElasticAPM, client=apm)
+
+#apm_client = make_apm_client(apm_config)
+#print(apm_client)
+#app.add_middleware(ElasticAPM, client=apm_client)
+
 origins = [
     "http://localhost",
     "http://localhost:8080",
     "http://localhost:4200",
-    "https://plataforma.automaxia.com.br"
+    "https://plataforma.automaxia.com.br",
+    "http://plataforma.automaxia.com.br",
+    "http://plataforma-web.automaxia.com.br",
+    "http://plataforma-api.automaxia.com.br",
+    "https://plataforma-api.automaxia.com.br"
 ]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
+
+#allow_methods=["GET", "POST", "PUT", "DELETE"],
+#allow_headers=["Authorization", "Content-Type"],
 
 #pip install virtualenv
 #python -m venv venv
@@ -157,6 +196,16 @@ app.include_router(route_controleexecucao.router)
 
 app.include_router(route_cofresenha.router)
 
+app.include_router(route_configuracao.router)
+
+'''@app.get("/external-service")
+async def call_external_service():
+    url = "http://external-service.example.com"
+    headers = get_trace_parent_header()
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers)
+    return response.json()'''
+
 @app.post("/send-notification/{email}", tags=['Background Task'])
 async def send_notification(email: str, background_tasks: BackgroundTasks):
     background_tasks.add_task(write_notification, email, message="Teste de e-mail")
@@ -175,40 +224,3 @@ async def tempo_middleware(request: Request, next):
     return response
 #socket_manager
 #websocket.main()
-
-'''@app.socket_manager.on('join')
-async def handle_join(sid, *args, **kwargs):
-    await socket_manager.emit('lobby', 'User joined')
-
-
-@socket_manager.on('test')
-async def test(sid, *args, **kwargs):
-    await socket_manager.emit('hey', 'joe')
-
-@socket_manager.on('sendMessage')
-def send_message_handler(msg):
-    socket_manager.emit('getMessage', msg)'''
-
-'''
-INSERT INTO public.cliente(tx_sigla, tx_nome, bo_status)
-VALUES('Automaxia', 'Área responsável pela execução e configuração inicial da ferramenta', true);
-
-INSERT INTO public.perfil(tx_nome, tx_finalidade, bo_superuser, bo_status)
-VALUES('Administrador', 'Responsável gerir os cadastros e configuração da ferramenta', true, true);
-
-INSERT INTO public.perfil_usuario(nu_cpf, perfil_id)
-VALUES('00000000191', (SELECT id FROM public.perfil WHERE tx_nome = 'Administrador'));
-
-#senha = admin@automaxia
-
-INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(1000, 'DashBoard', '/dashBoard', 'dashBoard', 1, true);
-INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(2000, 'Tarefa', '/tarefa', 'assignment', 2, true);
-INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(3000, 'Gestão de automação', '/automacao', 'settings', 3, true);
-INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(4000, 'Gestão de usuário', '/usuario', 'group', 4, true);
-INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(5000, 'Cadastro de Módulo', '/modulo', 'view_module', 5, true);
-INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(6000, 'Cadastro de Perfil', '/perfil', 'assignment_ind', 6, true);
-INSERT INTO public.menu(nu_codigo, tx_nome, tx_link, tx_icon, nu_ordem, bo_status) VALUES(7000, 'Cadastro de cliente', '/cliente', 'supervised_user_circle', 7, true);
-
-INSERT INTO public.perfil_menu(menu_id, perfil_id, cliente_id)
-(SELECT id, (SELECT id FROM public.perfil WHERE tx_nome = 'Automaxia'), (SELECT id FROM public.cliente WHERE tx_sigla = 'Automaxia') FROM public.menu);
-'''

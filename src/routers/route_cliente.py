@@ -21,7 +21,7 @@ class RouteErrorHandler(APIRoute):
                 if isinstance(ex, HTTPException):
                     raise ex
                 print(ex)
-                raise HTTPException(status_code=500, detail=str({'status': 1, 'message': ex}))
+                raise HTTPException(status_code=500, detail=str({'status': 1, 'detail': ex}))
         return custom_route_handler
 
 router = APIRouter(route_class=RouteErrorHandler)
@@ -54,7 +54,7 @@ async def atualizar_cliente(model: schemas.Cliente, db: Session = Depends(get_db
         return retorno
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Já existe um cliente cadastrado com esse Nome: {model.tx_nome} informado!')
-        return {'status': 1, 'message': error}
+        return {'status': 1, 'detail': error}
 
 @router.put("/cliente/ultimo_acesso", tags=['cliente'], status_code=status.HTTP_200_OK)
 async def altera_ultimo_acesso_usuario(model: schemas.UsuarioClienteAcesso, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):

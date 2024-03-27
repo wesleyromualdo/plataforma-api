@@ -91,7 +91,6 @@ json_dados = {
 json_log = {
         "historico_tarefa_id": 23,
         "tx_status": "success",
-        "tx_acao_auxiliar": "teste",
         "tx_descricao": "teste 2",
         "tx_json": "teste 3"
     }

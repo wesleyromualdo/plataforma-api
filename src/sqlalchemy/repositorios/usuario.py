@@ -1,5 +1,8 @@
 from sqlalchemy import select, delete, update, join
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import select
+from sqlalchemy.dialects import postgresql
+
 from src.sqlalchemy.models import models
 from src.schemas import schemas
 from src.utils import utils
@@ -16,17 +19,23 @@ class RepositorioUsuario():
     async def get_by_id(self, nu_cpf: str, relation = False) -> models.Usuario:
         try:
             stmt = select(models.Usuario).where(models.Usuario.nu_cpf == nu_cpf)
+            # Print the SQL query
+            #compiled_stmt = stmt.compile(dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True})
+            #print(str(compiled_stmt))
             db_orm = self.db.execute(stmt).scalars().first()
+            #print(db_orm)
 
             if relation:
                 perfil = await self.get_usuario_by_perfil(nu_cpf)
-                db_orm.perfil = perfil
+                if len(perfil) > 0:
+                    db_orm.perfil = perfil
 
                 automacao = await self.get_usuario_by_automacao(nu_cpf)
-                db_orm.automacao = automacao
-
+                if len(automacao) > 0:
+                    db_orm.automacao = automacao
             return db_orm
         except:
+            #print(traceback.format_exc())
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
@@ -152,7 +161,7 @@ class RepositorioUsuario():
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
-            return {'status': 1, 'message': error}
+            return {'status': 1, 'detail': error}
 
     async def post(self, orm: schemas.Usuario):
         try:
@@ -179,7 +188,7 @@ class RepositorioUsuario():
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
-            return {'status': 1, 'message': error}
+            return {'status': 1, 'detail': error}
 
     async def senha_acesso(self, orm: schemas.SenhaAcessoUsuario):
         try:
@@ -194,7 +203,7 @@ class RepositorioUsuario():
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
-            return {'status': 1, 'message': error}
+            return {'status': 1, 'detail': error}
 
     async def esqueci_senha(self, orm: schemas.SenhaAcessoUsuario):
         try:
@@ -209,7 +218,7 @@ class RepositorioUsuario():
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
-            return {'status': 1, 'message': error}
+            return {'status': 1, 'detail': error}
 
     async def put(self, orm: schemas.Usuario):
         try:
@@ -238,7 +247,7 @@ class RepositorioUsuario():
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
-            return {'status': 1, 'message': error}
+            return {'status': 1, 'detail': error}
 
     async def delete(self, nu_cpf: str):
         try:
@@ -247,12 +256,12 @@ class RepositorioUsuario():
             )
             self.db.execute(stmt)
             self.db.commit()
-            return {'status': 1, 'message': 'Registro excluido com sucesso.'}
+            return {'status': 1, 'detail': 'Registro excluido com sucesso.'}
         except Exception as error:
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
-            return {'status': 1, 'message': error}
+            return {'status': 1, 'detail': error}
 
     async def deleteCliente(self, nu_cpf: str):
         try:

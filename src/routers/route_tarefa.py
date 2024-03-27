@@ -21,6 +21,7 @@ import pytz, os, json
 from src.utils import utils
 from dotenv import dotenv_values
 import boto3, botocore, requests
+import logging
 
 AMSP = pytz.timezone('America/Sao_Paulo')
 
@@ -31,10 +32,10 @@ class RouteErrorHandler(APIRoute):
             try:
                 return await original_route_handler(request)
             except Exception as ex:
+                logging.error(f"An error occurred: {ex}")
                 if isinstance(ex, HTTPException):
                     raise ex
-                print(ex)
-                raise HTTPException(status_code=500, detail=str({'status': 1, 'message': ex}))
+                raise HTTPException(status_code=500, detail=str({'status': 1, 'detail': str(ex)}))
         return custom_route_handler
 
 router = APIRouter(route_class=RouteErrorHandler)
@@ -157,24 +158,36 @@ async def configurar_email_tarefa(model: schemas.Tarefa, db: Session = Depends(g
 @router.post("/tarefa/start/", tags=['Tarefa'], status_code=status.HTTP_200_OK)
 async def iniciar_tarefa(model: schemas.IniciaTarefa, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     try:
+        if model.tarefa_id == '' or model.tarefa_id is None or model.tarefa_id == 0 or model.nu_cpf == '' or model.nu_cpf is None or model.nu_cpf == 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'É necessário o ID da tarefa é o numero do CPF!')
+        
         retorno = await RepositorioTarefa(db).get_by_id(model.tarefa_id)
+        if model.cliente_id is None:
+            model = retorno
+            model.tarefa_id = retorno.id
+            model.execucao = ''
 
         if retorno.anexo_script_id is None:
             return {'status': 0, 'message': f"A tarefa {retorno.tx_nome} não foi encontrado script anexado!", 'id':''}
         elif retorno.bo_execucao is True:
             return {'status': 0, 'message': f"A tarefa {retorno.tx_nome} já está em execução. Tente novamente mais tarde.", 'id':retorno.historico_id}
         else:
-            automacao = await RepositorioTarefa(db).pega_automacao_espera(model.automacao_id, model.cliente_id)
-            if automacao is None:
-                return {'status': 0, 'message': 'Não foi encontrado nenhum worker ativo'}
-            else:
+            if model.execucao == 'manual':
                 retorno = await RepositorioTarefa(db).iniciar_tarefa(model)
-                return {'status': 1, 'message': 'Iniciando a execução da tarefa', 'id':retorno.historico_id}
+                return {'status': 1, 'message': 'Iniciando a execução da tarefa manualmente', 'id':retorno.historico_id}
+            else:
+                automacao = await RepositorioTarefa(db).pega_automacao_espera(model.automacao_id, model.cliente_id)
+                if automacao is None:
+                    return {'status': 0, 'message': 'Não foi encontrado nenhum worker ativo'}
+                else:
+                    retorno = await RepositorioTarefa(db).iniciar_tarefa(model)
+                    return {'status': 1, 'message': 'Iniciando a execução da tarefa', 'id':retorno.historico_id}
     except Exception as error:
         utc_dt = datetime.now(timezone.utc)
         dataErro = utc_dt.astimezone(AMSP)
         utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
-        return {'status': 0, 'message': error}
+        return {'status': 0, 'detail': str(error)}
+    
 
 @router.put("/tarefa/stop/", tags=['Tarefa'], status_code=status.HTTP_200_OK)
 async def parar_tarefa(model: schemas.StopTarefa, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
@@ -185,14 +198,14 @@ async def parar_tarefa(model: schemas.StopTarefa, db: Session = Depends(get_db),
         retorno = await RepositorioTarefa(db).get_by_id(model.tarefa_id)
         if retorno.bo_execucao is True:
             retorno = await RepositorioTarefa(db).parar_tarefa(model)
-            return {'status': 1, 'message': 'Finalizando a execução da tarefa'}
+            return {'status': 1, 'detail': 'Finalizando a execução da tarefa'}
         else:
-            return {'status': 0, 'message': f"A tarefa {retorno.tx_nome} já está finalizada. Tente novamente mais tarde."}
+            return {'status': 0, 'detail': f"A tarefa {retorno.tx_nome} já está finalizada. Tente novamente mais tarde."}
     except Exception as error:
         utc_dt = datetime.now(timezone.utc)
         dataErro = utc_dt.astimezone(AMSP)
         utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
-        return {'status': 0, 'message': error}
+        return {'status': 0, 'detail': error}
 
 @router.get("/tarefa/{tarefa_id}", tags=['Tarefa'], status_code=status.HTTP_200_OK, response_model=schemas.TarefaLista)
 async def pegar_tarefa(tarefa_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
@@ -312,7 +325,8 @@ async def uploadScripts(file: UploadFile, tarefa_id: str, nu_cpf: str, db: Sessi
         tx_sigla = str(cliente.id)+'_'+str(cliente.tx_sigla).replace(' ', '').lower()
         
         contents = file.file.read()
-        diretorio = f"{os.getcwd()}/automacoes/{tx_sigla}/"
+        #diretorio = f"{os.getcwd()}/automacoes/{tx_sigla}/"
+        diretorio = f"/data/plataforma/automacoes/{str(tx_sigla)}/"
         os.makedirs(diretorio, exist_ok=True)
 
         with open(diretorio+file.filename, 'wb') as f:
@@ -321,10 +335,8 @@ async def uploadScripts(file: UploadFile, tarefa_id: str, nu_cpf: str, db: Sessi
         config = dotenv_values(".env")
         config = json.loads((json.dumps(config) ))
 
-        filename_s3 = file.filename
-
+        '''filename_s3 = file.filename
         object_name = f"arquivos/automacoes/{tx_sigla}/{filename_s3}"
-
         response = requests.get(f"http://169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
         #/v2/credentials/65b80715-ac9d-4752-88b3-b927bc830a6f
         if response.status_code == 200:
@@ -347,7 +359,7 @@ async def uploadScripts(file: UploadFile, tarefa_id: str, nu_cpf: str, db: Sessi
             response = s3_client.upload_file(diretorio+file.filename, config['S3_BUCKET'], object_name)
             #s3_client = boto3.client('s3', aws_access_key_id=data['AccessKeyId'], aws_secret_access_key=data['SecretAccessKey'])
         else:
-            return {'status': response.status_code, 'detail': f'Não conectou no AWS'}
+            return {'status': response.status_code, 'detail': f'Não conectou no AWS'}'''
 
         file_stats = os.stat(diretorio+file.filename)
         size = file_stats.st_size
@@ -384,7 +396,8 @@ async def uploadScripts(file: UploadFile, tarefa_id: str, nu_cpf: str, db: Sessi
         except:
             print('')
 
-        return await RepositorioAnexoScript(db).post(json_anexo)
+        await RepositorioAnexoScript(db).post(json_anexo)
+        return {"detail": f"Successfully uploaded {file.filename}", "arquivo":f"{os.getcwd()}"}
         
     except Exception as error:
         utc_dt = datetime.now(timezone.utc)
@@ -404,11 +417,12 @@ async def downloadScripts(tarefa_id: int,db: Session = Depends(get_db), usuario 
         tx_sigla = str(cliente.id)+'_'+str(cliente.tx_sigla).replace(' ', '').lower()
 
         file_name = retorno.tx_nome_script
-        file_path = os.getcwd() + "/automacoes/"+str(tx_sigla)+'/'+ file_name
+        #file_path = os.getcwd() + "/file_path/"+str(tx_sigla)+'/'+ file_name
+        file_path = f"/data/plataforma/automacoes/"+str(tx_sigla)+'/'+ file_name
 
-        os.makedirs(os.getcwd() + "/automacoes/"+str(tx_sigla), exist_ok=True)
+        #os.makedirs(os.getcwd() + "/automacoes/"+str(tx_sigla), exist_ok=True)
 
-        config = dotenv_values(".env")
+        '''config = dotenv_values(".env")
         config = json.loads((json.dumps(config) ))
         s3_client = boto3.client('s3', aws_access_key_id=config['AWS_ACCESS_KEY_ID'], aws_secret_access_key=config['AWS_SECRET_ACCESS_KEY'])
 
@@ -418,7 +432,7 @@ async def downloadScripts(tarefa_id: int,db: Session = Depends(get_db), usuario 
             Bucket=config['S3_BUCKET'],
             Key=object_name,
             Filename=file_path
-        )
+        )'''
         
         await RepositorioAnexoScript(db).put(retorno.anexo_script_id)
         if os.path.isfile(file_path):

@@ -131,7 +131,7 @@ class RepositorioPerfil():
             )
             self.db.execute(stmt)
             self.db.commit()
-            return {'status': 1, 'message': 'Registro excluido com sucesso.'}
+            return {'status': 1, 'detail': 'Registro excluido com sucesso.'}
         except:
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)

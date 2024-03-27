@@ -1,6 +1,6 @@
 --senha = admin@automaxia
 INSERT INTO public.usuario(nu_cpf, tx_nome, tx_senha, tx_email, bo_status, dt_inclusao)
-VALUES('00000000191', 'Administrador Automaxia', '$2b$12$rfnrdFhgKa7RDiXtxTidU.s5k4yj5W4pFRyg5Zh8w2uzPsNkO92qq', 'wesleyromualdo@gmail.com', true, now());
+VALUES('05646593638', 'Administrador Automaxia', '$2b$12$rfnrdFhgKa7RDiXtxTidU.s5k4yj5W4pFRyg5Zh8w2uzPsNkO92qq', 'wesleyromualdo@gmail.com', true, now());
 
 INSERT INTO public.cliente(tx_sigla, tx_nome, bo_status)
 VALUES('Automaxia', 'Área responsável pela execução e configuração inicial da ferramenta', true);
@@ -9,10 +9,10 @@ INSERT INTO public.perfil(tx_nome, tx_finalidade, bo_superuser, bo_status)
 VALUES('Administrador', 'Responsável gerir os cadastros e configuração da ferramenta', true, true);
 
 INSERT INTO public.usuario_cliente(nu_cpf, cliente_id)
-VALUES('00000000191', (SELECT id FROM cliente s WHERE tx_sigla = 'Automaxia'));
+VALUES('05646593638', (SELECT id FROM cliente s WHERE tx_sigla = 'Automaxia'));
 
 INSERT INTO public.perfil_usuario(nu_cpf, perfil_id)
-VALUES('00000000191', (SELECT id FROM public.perfil WHERE tx_nome = 'Administrador'));
+VALUES('05646593638', (SELECT id FROM public.perfil WHERE tx_nome = 'Administrador'));
 
 #senha = admin@automaxia
 

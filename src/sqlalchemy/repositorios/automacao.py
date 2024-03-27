@@ -228,7 +228,8 @@ class RepositorioAutomacao():
             cliente = self.db.execute(sql).first()
             tx_sigla = str(dados.cliente_id)+'_'+str(cliente.tx_sigla).replace(' ', '').lower()
 
-            dir_cli_workers = os.getcwd()+'/workers/'+str(tx_sigla)
+            #dir_cli_workers = os.getcwd()+'/workers/'+str(tx_sigla)
+            dir_cli_workers = f"/data/plataforma/workers/"+str(tx_sigla)
 
             os.makedirs(dir_cli_workers, exist_ok=True)
 
@@ -305,7 +306,7 @@ class RepositorioAutomacao():
 
             with ZipFile(dir_cliente, 'a') as myzip:
                 #with myzip.open('workers-setup/config.json','r') as myfile:
-                with open(str(os.getcwd()).replace('/', '/')+'/worker.json', "a", encoding='utf_8_sig') as outfile:
+                with open(str(os.getcwd()).replace('/', '/')+'/worker.json', "w", encoding='utf_8_sig') as outfile:
                     outfile.write(str(config_json).replace("'", '"'))
                 myzip.write('worker.json')
                 myzip.close()
@@ -313,9 +314,10 @@ class RepositorioAutomacao():
             if os.path.isfile(str(os.getcwd()).replace('/', '/')+'/worker.json'):
                 os.remove(os.getcwd()+'/worker.json')
 
-            filename_s3 = str(dados.tx_nome)+'.zip'
-            object_name = f"arquivos/workers/{tx_sigla}/{filename_s3}"
-            self.gravar_s3_aws(object_name, dir_cliente, configJson['S3_BUCKET'])
+            #filename_s3 = str(dados.tx_nome)+'.zip'
+            #object_name = f"arquivos/workers/{tx_sigla}/{filename_s3}"
+
+            #self.gravar_s3_aws(object_name, dir_cliente, configJson['S3_BUCKET'])
 
         except:
             utc_dt = datetime.now(timezone.utc)
@@ -324,7 +326,7 @@ class RepositorioAutomacao():
             return {"detail": f"""{traceback.format_exc()}""","data": str(dataErro)}
         
     def gravar_s3_aws(self, object_name, dir_cliente, bucket_name):
-        response = requests.get(f"http://169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
+        response = requests.get(f"http://169.254.170.2/v2/credentials/65b80715-ac9d-4752-88b3-b927bc830a6f")
         #/v2/credentials/65b80715-ac9d-4752-88b3-b927bc830a6f
         if response.status_code == 200:
             data = response.json()
@@ -427,7 +429,7 @@ class RepositorioAutomacao():
             )
             self.db.execute(stmt)
             self.db.commit()
-            return {'status': 1, 'message': 'Registro excluido com sucesso.'}
+            return {'status': 1, 'detail': 'Registro excluido com sucesso.'}
         except Exception as error:
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)

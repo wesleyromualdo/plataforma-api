@@ -1,0 +1,11 @@
+venv/
+.github/
+.git/
+__pycache__/
+logs/
+alembic/
+data/
+worker/
+docker_config/
+automacoes/
+alembic_aws/

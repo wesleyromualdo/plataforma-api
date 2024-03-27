@@ -6,7 +6,8 @@ from src.schemas import schemas
 from src.utils import utils
 import traceback
 from datetime import datetime, date, timezone
-import pytz
+import pytz, json
+from elasticsearch import Elasticsearch
 
 AMSP = pytz.timezone('America/Sao_Paulo')
 
@@ -25,11 +26,9 @@ class RepositorioLogs():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_all(self, historico_id, tx_acao_auxiliar, tx_descricao, pagina=0, tamanho_pagina=0):
+    async def get_all(self, historico_id, tx_descricao, pagina=0, tamanho_pagina=0):
         try:
             result = self.db.query(models.Logs).order_by(models.Logs.id.desc())
-            if tx_acao_auxiliar:
-                result = result.filter(models.Logs.tx_acao_auxiliar.in_(tx_acao_auxiliar))
                 
             if tx_descricao:
                 result = result.filter(models.Logs.tx_descricao.in_(tx_descricao))
@@ -51,7 +50,6 @@ class RepositorioLogs():
             db_orm = models.Logs(
                 historico_tarefa_id = orm.historico_tarefa_id,
                 tx_status = orm.tx_status,
-                tx_acao_auxiliar = orm.tx_acao_auxiliar,
                 tx_descricao = orm.tx_descricao,
                 tx_json = orm.tx_json
             )
@@ -70,7 +68,6 @@ class RepositorioLogs():
             stmt = update(models.Logs).where(models.Logs.id == orm.id).values(
                 historico_tarefa_id = orm.historico_tarefa_id,
                 tx_status = orm.tx_status,
-                tx_acao_auxiliar = orm.tx_acao_auxiliar,
                 tx_descricao = orm.tx_descricao,
                 tx_json = orm.tx_json
             )
@@ -101,4 +98,21 @@ class RepositorioLogs():
         except:
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
-            utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})        
+            utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
+
+    async def inserir_doc_elastic(self, orm: schemas.LogsElastic):
+        try:
+
+            es = Elasticsearch(["http://elasticsearch.logging.svc.cluster.local:9200"])
+            index_name = orm.index_name
+
+            if not es.indices.exists(index=index_name):
+                es.indices.create(index=index_name)
+            
+            res = es.index(index=index_name, body=orm.json_dados)
+            return res['result']
+        except:
+            utc_dt = datetime.now(timezone.utc)
+            dataErro = utc_dt.astimezone(AMSP)
+            utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
+            return traceback.format_exc()

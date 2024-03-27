@@ -1,6 +1,6 @@
 import json
-from pydantic import BaseModel, validator, EmailStr
-from typing import Optional, List
+from pydantic import BaseModel, validator, EmailStr, Json
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from sqlalchemy.sql import func
 
@@ -227,10 +227,12 @@ class PerfilMenu(BaseModel):
         orm_mode = True'''
 class IniciaTarefa(BaseModel):
     tarefa_id: int
-    cliente_id: int
+    cliente_id: Optional[int] = None
     automacao_id: Optional[int] = None
     nu_cpf: str
     tx_json: Optional[str] = None
+    execucao: Optional[str] = None
+    tx_ip_mac: Optional[str] = None
 
 class TarefaPOST(BaseModel):
     automacao_id: Optional[int] = None
@@ -317,9 +319,15 @@ class PerfilTarefa(BaseModel):
 class LogsPOST(BaseModel):
     historico_tarefa_id: int
     tx_status: Optional[str] = ''
-    tx_acao_auxiliar: Optional[str] = ''
     tx_descricao: Optional[str] = ''
     tx_json: Optional[str] = ''
+    class Config:
+        orm_mode = True
+
+class LogsElastic(BaseModel):
+    url: Optional[str] = ''
+    index_name: Optional[str] = ''
+    json_dados: Optional[Dict[str, Any]] = None
     class Config:
         orm_mode = True
 
@@ -412,6 +420,24 @@ class CofreSenha(CofreSenhaPOST):
         orm_mode = True
 
 class CofreSenhaLista(CofreSenha):
+    dt_inclusao: Optional[datetime] = None
+    bo_status: Optional[bool] = True
+    class Config:
+        orm_mode = True
+
+class ConfiguracaoPOST(BaseModel):
+    tarefa_id: int
+    tx_chave: Optional[str] = ''
+    tx_valor: Optional[str] = ''
+    class Config:
+        orm_mode = True
+
+class Configuracao(ConfiguracaoPOST):
+    id: int
+    class Config:
+        orm_mode = True
+
+class ConfiguracaoLista(Configuracao):
     dt_inclusao: Optional[datetime] = None
     bo_status: Optional[bool] = True
     class Config:

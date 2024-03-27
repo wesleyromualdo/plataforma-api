@@ -214,7 +214,6 @@ class Logs(Base):
     historico_tarefa_id = Column(Integer, ForeignKey('tarefa_historico.id', name='fk_logs_historicotarefa'))
     dt_inclusao = Column(DateTime(timezone=False), server_default=func.now())
     tx_status = Column(String(50))
-    tx_acao_auxiliar = Column(Text)
     tx_descricao = Column(Text)
     tx_json = Column(Text)
 
@@ -247,6 +246,16 @@ class CofreSenha(Base):
     tx_nome = Column(String(300))
     tx_usuario = Column(String(50))
     tx_senha = Column(String(300))
+    bo_status = Column(Boolean, server_default='t', default=True)
+    dt_inclusao = Column(DateTime(timezone=False), server_default=func.now())
+
+class Configuracao(Base):
+    __tablename__ = 'configuracao'
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    tarefa_id = Column(Integer, ForeignKey('tarefa.id', name='fk_tarefa_configuracao'))
+    tx_chave = Column(String(300))
+    tx_valor = Column(String(1000))
     bo_status = Column(Boolean, server_default='t', default=True)
     dt_inclusao = Column(DateTime(timezone=False), server_default=func.now())
     

@@ -22,20 +22,19 @@ class RouteErrorHandler(APIRoute):
                 if isinstance(ex, HTTPException):
                     raise ex
                 print(ex)
-                raise HTTPException(status_code=500, detail=str({'status': 1, 'message': ex}))
+                raise HTTPException(status_code=500, detail=str({'status': 1, 'detail': ex}))
         return custom_route_handler
 
 router = APIRouter(route_class=RouteErrorHandler)
 
 @router.get("/logs", tags=['Logs'], status_code=status.HTTP_200_OK, response_model=List[schemas.LogsLista])
-async def listar_todos_logs(historico_id: Optional[int] = Query(default=None), 
-                            tx_acao_auxiliar: Optional[str] = Query(default=None),
+async def listar_todos_logs(historico_id: Optional[int] = Query(default=None),
                             tx_descricao: Optional[str] = Query(default=None),
                             pagina: Optional[int] = Query(default=0),
                             tamanho_pagina: Optional[int] = Query(default=0), 
                             db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
 
-    retorno = await RepositorioLogs(db).get_all(historico_id, tx_acao_auxiliar, tx_descricao, pagina, tamanho_pagina)
+    retorno = await RepositorioLogs(db).get_all(historico_id, tx_descricao, pagina, tamanho_pagina)
     if not retorno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o(s) filtro(s) informado(s)!')
     return retorno
@@ -69,4 +68,9 @@ async def pegar_logs_por_historico_tarefa_id(historico_tarefa_id: int, db: Sessi
 @router.delete("/logs/{log_id}", tags=['Logs'], status_code=status.HTTP_200_OK)
 async def apagar_log(log_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     retorno = await RepositorioLogs(db).delete(log_id)
+    return retorno
+
+@router.post("/logs/elasticsearch", tags=['Logs'], status_code=status.HTTP_201_CREATED)
+async def inserir_doc_elastic(model: schemas.LogsElastic, db: Session = Depends(get_db)):
+    retorno = await RepositorioLogs(db).inserir_doc_elastic(model)
     return retorno

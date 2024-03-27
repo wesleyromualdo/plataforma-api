@@ -59,35 +59,13 @@ class RepositorioTarefa():
 
     async def get_all(self, nu_cpf, tx_nome, bo_execucao, bo_status, automacao_id, cliente_id, bo_agendada, pagina=0, tamanho_pagina=0):
         try:
-            '''j = join(models.Tarefa, models.AutomacaoUsuario, models.Tarefa.automacao_id == models.AutomacaoUsuario.automacao_id)
-            result = self.db.query(models.Tarefa).select_from(j).where(models.AutomacaoUsuario.nu_cpf == nu_cpf)
-            
-            if bo_execucao == True or bo_execucao == False:
-                result = result.filter( models.Tarefa.bo_execucao == bo_execucao)
-
-            if automacao_id:
-                result = result.filter(models.Tarefa.automacao_id == automacao_id)
-
-            if cliente_id:
-                result = result.filter(models.Tarefa.cliente_id == cliente_id)
-
-            if tx_nome:
-                result = result.filter(models.Tarefa.tx_nome == tx_nome)
-
-            if str(bo_status):
-                result = result.filter(models.Tarefa.bo_status == bo_status)
-
-            if tamanho_pagina > 0:
-                result.offset(pagina).limit(tamanho_pagina)
-
-            return result.all()'''
-
             filtro = ''
             join = ''
+
             if bo_execucao == True or bo_execucao == False:
                 filtro += f" and t.bo_execucao = {bo_execucao}"
 
-            if 'true' in str(bo_agendada) or 'false' in bo_agendada:
+            if bo_agendada is not None and ('true' in str(bo_agendada) or 'false' in str(bo_agendada)):
                 filtro += f" and t.bo_agendada = {bo_agendada}"
 
             if nu_cpf:
@@ -123,7 +101,7 @@ class RepositorioTarefa():
             
             result = self.db.execute(sql).all()
             
-            if (bo_agendada is True or bo_agendada == 'true'):
+            if bo_agendada is not None and 'true' in str(bo_agendada):
                 result = await self.carrega_coluna_agendamento(result)
             return result
         except:
@@ -617,7 +595,13 @@ class RepositorioTarefa():
 
     async def iniciar_tarefa(self, orm: schemas.IniciaTarefa):
         try:
-            automacao = await self.pega_automacao_espera(orm.automacao_id, orm.cliente_id)
+            tx_ip_mac = ''
+            if orm.execucao == 'manual' and orm.execucao is not None:
+                tx_ip_mac = orm.tx_ip_mac
+            
+            if (tx_ip_mac == '' or tx_ip_mac is None) and orm.cliente_id is not None and orm.automacao_id is not None:
+                automacao = await self.pega_automacao_espera(orm.automacao_id, orm.cliente_id)
+                tx_ip_mac = automacao.tx_ip_mac
 
             utc_dt = datetime.now(timezone.utc)
             dt_inicio = utc_dt.astimezone(AMSP)
@@ -626,7 +610,7 @@ class RepositorioTarefa():
                 tarefa_id = orm.tarefa_id,
                 automacao_id = orm.automacao_id,
                 nu_cpf = orm.nu_cpf,
-                tx_ip_execucao = automacao.tx_ip_mac,
+                tx_ip_execucao = tx_ip_mac,
                 dt_inicio = dt_inicio,
                 tx_json = orm.tx_json
             )
@@ -656,6 +640,7 @@ class RepositorioTarefa():
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
+            return str(error)
 
     async def parar_tarefa(self, orm: schemas.TarefaHistorico):
         try:
@@ -880,12 +865,12 @@ class RepositorioTarefa():
             )
             self.db.execute(stmt)
             self.db.commit()
-            return {'status': 1, 'message': 'Registro excluido com sucesso.'}
+            return {'status': 1, 'detail': 'Registro excluido com sucesso.'}
         except Exception as error:
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
-            return {'status': 1, 'message': error}
+            return {'status': 1, 'detail': error}
 
     def envio_email(self, subject, html_corpo, email_user):
         import pathlib

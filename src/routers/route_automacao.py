@@ -19,6 +19,7 @@ import boto3, json
 import pytz, os, requests
 from src.utils import utils
 from dotenv import dotenv_values
+import shutil
 
 AMSP = pytz.timezone('America/Sao_Paulo')
 
@@ -32,7 +33,7 @@ class RouteErrorHandler(APIRoute):
                 if isinstance(ex, HTTPException):
                     raise ex
                 print(ex)
-                raise HTTPException(status_code=500, detail=str({'status': 1, 'message': ex}))
+                raise HTTPException(status_code=500, detail=str({'status': 1, 'detail': ex}))
         return custom_route_handler
 
 router = APIRouter(route_class=RouteErrorHandler)
@@ -135,15 +136,16 @@ async def download_worker(automacao_id: int,db: Session = Depends(get_db), usuar
         tx_sigla = str(retorno.cliente_id)+'_'+str(cliente.tx_sigla).replace(' ', '').lower()
 
         file_name = str(retorno.tx_nome)+'.zip'
-        file_path = os.getcwd().replace('\\','/') + "/workers/"+str(tx_sigla)+'/'+ file_name
-        file_path_seg = os.getcwd().replace('\\','/') + "/workers/"+str(retorno.cliente_id)+"_automaxia/"+ file_name
+        #file_path = os.getcwd().replace('\\','/') + "/workers/"+str(tx_sigla)+'/'+ file_name
+        #file_path_seg = os.getcwd().replace('\\','/') + "/workers/"+str(retorno.cliente_id)+"_automaxia/"+ file_name
 
         os.makedirs(os.getcwd() + "/workers/"+str(tx_sigla), exist_ok=True)
         
         config = dotenv_values(".env")
         config = json.loads((json.dumps(config) ))
+        file_path = f"/data/plataforma/workers/"+str(tx_sigla)+"/"+ file_name
 
-        response = requests.get(f"http://169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
+        '''response = requests.get(f"http://169.254.170.2{os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')}")
         #/v2/credentials/65b80715-ac9d-4752-88b3-b927bc830a6f
         if response.status_code == 200:
             data = response.json()
@@ -165,18 +167,13 @@ async def download_worker(automacao_id: int,db: Session = Depends(get_db), usuar
             )
             #s3_client = boto3.client('s3', aws_access_key_id=data['AccessKeyId'], aws_secret_access_key=data['SecretAccessKey'])
         else:
-            return {'status': response.status_code, 'detail': f'Não conectou no AWS'}
+            return {'status': response.status_code, 'detail': f'Não conectou no AWS'}'''
         
         if (int(retorno.total_donwload) +1) > int(retorno.nu_qtd_download):
             return {'detail': f'A quantidade permitida de download foi atingida.'}
         #print(file_path)
         if os.path.isfile(file_path):
             arquivo = FileResponse(path=file_path, media_type='application/octet-stream', filename=file_name)   
-            #if os.path.exists(file_path):
-            #    os.remove(file_path)
-            return arquivo
-        elif os.path.isfile(file_path_seg):
-            arquivo = FileResponse(path=file_path_seg, media_type='application/octet-stream', filename=file_name)   
             #if os.path.exists(file_path):
             #    os.remove(file_path)
             return arquivo

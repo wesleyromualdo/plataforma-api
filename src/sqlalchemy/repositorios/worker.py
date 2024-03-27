@@ -143,7 +143,7 @@ class RepositorioWorker():
             )
             self.db.execute(stmt)
             self.db.commit()
-            return {'status': 1, 'message': 'Worker parado com sucesso.'}
+            return {'status': 1, 'detail': 'Worker parado com sucesso.'}
         except Exception as error:
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
@@ -156,7 +156,7 @@ class RepositorioWorker():
             )
             self.db.execute(stmt)
             self.db.commit()
-            return {'status': 1, 'message': 'Worker inativado com sucesso.'}
+            return {'status': 1, 'detail': 'Worker inativado com sucesso.'}
         except Exception as error:
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
