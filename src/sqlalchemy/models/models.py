@@ -1,6 +1,6 @@
 import json
 from unicodedata import name
-from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, DateTime, Text, Float
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, DateTime, Text, Float, Index
 from src.sqlalchemy.config.database import Base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -72,9 +72,9 @@ class PerfilMenu(Base):
     __tablename__ = 'perfil_menu'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    menu_id = Column(Integer, ForeignKey('menu.id', name='fk_perfilmenu_menu'))
-    perfil_id = Column(Integer, ForeignKey('perfil.id', name='fk_perfilmenu_perfil'))
-    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_perfilmenu_cliente'))
+    menu_id = Column(Integer, ForeignKey('menu.id', name='fk_perfilmenu_menu'), index=True)
+    perfil_id = Column(Integer, ForeignKey('perfil.id', name='fk_perfilmenu_perfil'), index=True)
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_perfilmenu_cliente'), index=True)
 
     #perfis = relationship('Perfil', back_populates='perfilmenu')
     #menus = relationship('Menu', back_populates='perfis')
@@ -83,8 +83,8 @@ class Automacao(Base):
     __tablename__ = 'automacao'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_automacao_cliente'))
-    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_automacao_usuario'))
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_automacao_cliente'), index=True)
+    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_automacao_usuario'), index=True)
     tx_nome = Column(String(200))
     tx_descricao = Column(String(200))
     tx_constante_virtual = Column(String(100))
@@ -102,9 +102,9 @@ class DownloadWorker(Base):
     __tablename__ = 'download_worker'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_download_worker_cliente'))
-    automacao_id = Column(Integer, ForeignKey('automacao.id', name='fk_download_worker_automacao'))
-    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_download_worker_usuario'))
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_download_worker_cliente'), index=True)
+    automacao_id = Column(Integer, ForeignKey('automacao.id', name='fk_download_worker_automacao'), index=True)
+    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_download_worker_usuario'), index=True)
     tx_nome = Column(String(200))
     tx_ip_mac = Column(String(30))    
     tx_ip = Column(String(30))
@@ -127,26 +127,26 @@ class AutomacaoUsuario(Base):
     __tablename__ = 'automacao_usuario'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_automacao_usuario_usuario'))
-    automacao_id = Column(Integer, ForeignKey('automacao.id', name='fk_automacao_usuario_automacao'))
-    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_automacao_usuario_cliente'))
+    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_automacao_usuario_usuario'), index=True)
+    automacao_id = Column(Integer, ForeignKey('automacao.id', name='fk_automacao_usuario_automacao'), index=True)
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_automacao_usuario_cliente'), index=True)
 
 
 class PerfilUsuario(Base):
     __tablename__ = 'perfil_usuario'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_perfilusuario_usuario'))
-    perfil_id = Column(Integer, ForeignKey('perfil.id', name='fk_perfilusuario_perfil'))
+    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_perfilusuario_usuario'), index=True)
+    perfil_id = Column(Integer, ForeignKey('perfil.id', name='fk_perfilusuario_perfil'), index=True)
     #usuario = relationship('Usuario', backref='perfil')
 
 class Tarefa(Base):
     __tablename__ = 'tarefa'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    automacao_id = Column(Integer, ForeignKey('automacao.id', name='fk_tarefa_automacao'))
-    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_tarefa_cliente'))
-    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_tarefa_usuario'))
+    automacao_id = Column(Integer, ForeignKey('automacao.id', name='fk_tarefa_automacao'), index=True)
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_tarefa_cliente'), index=True)
+    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_tarefa_usuario'), index=True)
     historico_id = Column(Integer)
     tx_nome = Column(String(200))
     tx_situacao = Column(String(200))
@@ -174,7 +174,7 @@ class AnexoScript(Base):
     __tablename__ = 'anexo_script'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    tarefa_id = Column(Integer, ForeignKey('tarefa.id', name='fk_tarefa_anexo_script'))
+    tarefa_id = Column(Integer, ForeignKey('tarefa.id', name='fk_tarefa_anexo_script'), index=True)
     nu_cpf = Column(String(11))
     tx_nome = Column(String(200))
     tx_extensao = Column(String(50))
@@ -190,9 +190,9 @@ class TarefaHistorico(Base):
     __tablename__ = 'tarefa_historico'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    tarefa_id = Column(Integer, ForeignKey('tarefa.id', name='fk_tarefahistorico_tarefa'))
-    automacao_id = Column(Integer, ForeignKey('automacao.id', name='fk_tarefahistorico_automacao'))
-    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_tarefahistorico_usuario'))
+    tarefa_id = Column(Integer, ForeignKey('tarefa.id', name='fk_tarefahistorico_tarefa'), index=True)
+    automacao_id = Column(Integer, ForeignKey('automacao.id', name='fk_tarefahistorico_automacao'), index=True)
+    nu_cpf = Column(String(11), ForeignKey('usuario.nu_cpf', name='fk_tarefahistorico_usuario'), index=True)
     dt_inicio = Column(DateTime(timezone=False), server_default=func.now())
     dt_fim = Column(DateTime(timezone=False))
     bo_status_code = Column(Integer)
@@ -200,28 +200,31 @@ class TarefaHistorico(Base):
     tx_resumo = Column(Text)
     tx_json = Column(Text)
 
+Index('idx_tarefa_automacao_cpf', TarefaHistorico.tarefa_id, TarefaHistorico.automacao_id, TarefaHistorico.nu_cpf)
+
 class PerfilTarefa(Base):
     __tablename__ = 'perfil_tarefa'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    tarefa_id = Column(Integer, ForeignKey('tarefa.id', name='fk_perfiltarefa_tarefa'))
-    perfil_id = Column(Integer, ForeignKey('perfil.id', name='fk_perfiltarefa_perfil'))
+    tarefa_id = Column(Integer, ForeignKey('tarefa.id', name='fk_perfiltarefa_tarefa'), index=True)
+    perfil_id = Column(Integer, ForeignKey('perfil.id', name='fk_perfiltarefa_perfil'), index=True)
 
 class Logs(Base):
     __tablename__ = 'logs'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    historico_tarefa_id = Column(Integer, ForeignKey('tarefa_historico.id', name='fk_logs_historicotarefa'))
+    historico_tarefa_id = Column(Integer, ForeignKey('tarefa_historico.id', name='fk_logs_historicotarefa'), index=True)
     dt_inclusao = Column(DateTime(timezone=False), server_default=func.now())
     tx_status = Column(String(50))
     tx_descricao = Column(Text)
+    tx_imagem = Column(String(500))
     tx_json = Column(Text)
 
 class DadoNegocial(Base):
     __tablename__ = 'dado_negocial'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    historico_tarefa_id = Column(Integer, ForeignKey('tarefa_historico.id', name='fk_dadosnegocial_historicotarefa'))
+    historico_tarefa_id = Column(Integer, ForeignKey('tarefa_historico.id', name='fk_dadosnegocial_historicotarefa'), index=True)
     tx_descricao = Column(String(300))
     dt_inicio = Column(DateTime(timezone=False), server_default=func.now())
     dt_fim  = Column(DateTime(timezone=False))
@@ -232,17 +235,25 @@ class ControleExecucao(Base):
     __tablename__ = 'controle_execucao'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    tarefa_id = Column(Integer, ForeignKey('tarefa.id', name='fk_controle_execucao_tarefa'))
+    tarefa_id = Column(Integer, ForeignKey('tarefa.id', name='fk_controle_execucao_tarefa'), index=True)
     tx_descricao = Column(String(300))
     dt_cadastro = Column(DateTime(timezone=False), server_default=func.now())
+    dt_inicio = Column(DateTime(timezone=False))
+    dt_fim = Column(DateTime(timezone=False))
     bo_status = Column(Boolean, server_default='t', default=True)
+    bo_status_code = Column(Integer, nullable=True)
+    tx_chave = Column(String(100))
+    tx_situacao = Column(String(50))
+    tx_resumo = Column(Text)
+    tx_tempo = Column(String(50))
     tx_json = Column(Text)
+    tx_imgbase64 = Column(String(500))
 
 class CofreSenha(Base):
     __tablename__ = 'cofre_senha'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_cofre_senha_cliente'))
+    cliente_id = Column(Integer, ForeignKey('cliente.id', name='fk_cofre_senha_cliente'), index=True)
     tx_nome = Column(String(300))
     tx_usuario = Column(String(50))
     tx_senha = Column(String(300))
@@ -253,9 +264,10 @@ class Configuracao(Base):
     __tablename__ = 'configuracao'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    tarefa_id = Column(Integer, ForeignKey('tarefa.id', name='fk_tarefa_configuracao'))
+    tarefa_id = Column(Integer, ForeignKey('tarefa.id', name='fk_tarefa_configuracao'), index=True)
     tx_chave = Column(String(300))
     tx_valor = Column(String(1000))
+    num_ordem = Column(Integer)
     bo_status = Column(Boolean, server_default='t', default=True)
     dt_inclusao = Column(DateTime(timezone=False), server_default=func.now())
     

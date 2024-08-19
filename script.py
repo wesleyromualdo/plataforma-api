@@ -18,7 +18,7 @@ class Configuracao():
 
     def conecta_db(self):
       try:
-        self.con = psycopg2.connect(host='postgres-plataforma.automaxia.com.br', port="5432", database='plataforma', user='usr_plataforma', password='cG9zdGdyZXNfcGFzc3dvcmQ')
+        self.con = psycopg2.connect(host='154.38.187.212', port="6432", database='plataforma', user='usr_plataforma', password='cG9zdGdyZXNOPRTfcGFzc3dvcmQ454aaaff')
         self.cur = self.con.cursor()
       except:
         print(traceback.format_exc())

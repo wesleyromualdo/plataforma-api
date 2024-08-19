@@ -25,9 +25,9 @@ class RepositorioConfiguracao():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_configuracao_by_chave(self, tx_chave: str):
+    async def get_configuracao_by_chave(self, tx_chave: str, tarefa_id:str):
         try:
-            stmt = select(models.Configuracao).where(models.Configuracao.tx_chave == tx_chave).where(models.Configuracao.bo_status == True)
+            stmt = select(models.Configuracao).where(models.Configuracao.tx_chave == tx_chave).where(models.Configuracao.tarefa_id == tarefa_id).where(models.Configuracao.bo_status == True)
             db_orm = self.db.execute(stmt).scalars().first()
             return db_orm
         except:
@@ -51,6 +51,7 @@ class RepositorioConfiguracao():
                 result.offset(pagina).limit(tamanho_pagina)
             
             #print(str(result.statement.compile(self.db.bind)))
+            result = result.order_by(models.Configuracao.num_ordem)
             return result.all()
         except:
             utc_dt = datetime.now(timezone.utc)
@@ -62,7 +63,8 @@ class RepositorioConfiguracao():
             db_orm = models.Configuracao(
                 tarefa_id = orm.tarefa_id,
                 tx_chave = orm.tx_chave,
-                tx_valor = orm.tx_valor
+                tx_valor = orm.tx_valor,
+                num_ordem = orm.num_ordem
             )
             self.db.add(db_orm)
             self.db.commit()
@@ -79,7 +81,8 @@ class RepositorioConfiguracao():
             stmt = update(models.Configuracao).where(models.Configuracao.id == orm.id).values(
                 tarefa_id = orm.tarefa_id,
                 tx_chave = orm.tx_chave,
-                tx_valor = orm.tx_valor
+                tx_valor = orm.tx_valor,
+                num_ordem = orm.num_ordem
             )
             db_orm = self.db.execute(stmt)
             self.db.commit()

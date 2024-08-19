@@ -41,7 +41,7 @@ async def listar_todos(tx_nome: Optional[str] = Query(default=None, max_length=2
 
 @router.post("/configuracao/", tags=['Configuração'], status_code=status.HTTP_201_CREATED)
 async def inserir(model: schemas.ConfiguracaoPOST, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
-    retorno = await RepositorioConfiguracao(db).get_configuracao_by_chave(model.tx_chave)    
+    retorno = await RepositorioConfiguracao(db).get_configuracao_by_chave(model.tx_chave, model.tarefa_id)    
     if retorno:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Já existe um chave cadastrada com esse Nome: {model.tx_chave} informado!')
     retorno = await RepositorioConfiguracao(db).post(model)
@@ -59,9 +59,9 @@ async def pegar_configuracao(id: int, db: Session = Depends(get_db), usuario = D
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para o id: {id} informado!')
     return retorno
 
-@router.get("/configuracao/{tx_chave}", tags=['Configuração'], status_code=status.HTTP_200_OK)
-async def pegar_configuracao_chave(tx_chave: str, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
-    retorno = await RepositorioConfiguracao(db).get_configuracao_by_chave(tx_chave)
+@router.get("/configuracao/{tx_chave}/{tarefa_id}", tags=['Configuração'], status_code=status.HTTP_200_OK)
+async def pegar_configuracao_chave(tx_chave: str, tarefa_id:str, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+    retorno = await RepositorioConfiguracao(db).get_configuracao_by_chave(tx_chave, tarefa_id)
     if not retorno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para a chave: {tx_chave} informada!')
     return retorno

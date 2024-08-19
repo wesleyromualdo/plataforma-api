@@ -2,7 +2,7 @@ import os
 import io
 import json, traceback
 from datetime import datetime, timezone
-import pytz
+import pytz, uuid, base64
 
 AMSP = pytz.timezone('America/Sao_Paulo')
 
@@ -79,59 +79,75 @@ def grava_error_arquivo(json_error):
         outfile.write(str(conteudo))
 
 def envio_email(subject, html_corpo, email_user, arquivos = []):
-        import pathlib
-        from email import encoders
-        from email.mime.base import MIMEBase
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        import smtplib
+    import pathlib
+    from email import encoders
+    from email.mime.base import MIMEBase
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    import smtplib
+    
+
+    try:
+        json_config = pega_dados_configuracao()
+        fromaddr = json_config['config_email']['fromaddr']
+        password = json_config['config_email']['password']
+        toaddr = email_user
+        host = json_config['config_email']['host']
+        port = json_config['config_email']['port']
+        msg = MIMEMultipart()
         
+        msg['From'] = fromaddr
+        msg['To'] = toaddr
+        msg['Subject'] = subject
+        toaddr = toaddr.split(';')
+        body = html_corpo
 
-        try:
-            json_config = pega_dados_configuracao()
-            fromaddr = json_config['config_email']['fromaddr']
-            password = json_config['config_email']['password']
-            toaddr = email_user
-            host = json_config['config_email']['host']
-            port = json_config['config_email']['port']
-            msg = MIMEMultipart()
-            
-            msg['From'] = fromaddr
-            msg['To'] = toaddr
-            msg['Subject'] = subject
-            toaddr = toaddr.split(';')
-            body = html_corpo
+        msg.attach(MIMEText(body, 'html'))
 
-            msg.attach(MIMEText(body, 'html'))
+        #dir_atual = os.getcwd()
 
-            #dir_atual = os.getcwd()
+        #filename = "Registro_Atividade_" + str(date.today()) + '.csv'
+        #arquivolog = [fr'{dir_atual}\logs\{filename}']                        
 
-            #filename = "Registro_Atividade_" + str(date.today()) + '.csv'
-            #arquivolog = [fr'{dir_atual}\logs\{filename}']                        
+        #print(arquivolog)
+        if len(arquivos) > 0:
+            for f in arquivos:
+                attachment = open(f, 'rb')
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload((attachment).read())
+                encoders.encode_base64(part)
+                #part.add_header('Content-Disposition',"attachment; filename= %s" % filename)
+                part.add_header('Content-Disposition','attachment; filename="%s"'% os.path.basename(f))
 
-            #print(arquivolog)
-            if len(arquivos) > 0:
-                for f in arquivos:
-                    attachment = open(f, 'rb')
-                    part = MIMEBase('application', 'octet-stream')
-                    part.set_payload((attachment).read())
-                    encoders.encode_base64(part)
-                    #part.add_header('Content-Disposition',"attachment; filename= %s" % filename)
-                    part.add_header('Content-Disposition','attachment; filename="%s"'% os.path.basename(f))
+                msg.attach(part)
+                attachment.close()
 
-                    msg.attach(part)
-                    attachment.close()
+        server = smtplib.SMTP(host, port)
+        server.starttls()
+        server.login(fromaddr, password)
+        text = msg.as_string()
+        toaddrs = toaddr
+        retorno = server.sendmail(fromaddr, toaddrs, text)
+        #print('email: ', fromaddr, toaddrs, text)
+        server.quit()
+        return retorno
+    except Exception as error:
+        utc_dt = datetime.now(timezone.utc)
+        dataErro = utc_dt.astimezone(AMSP)
+        grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-            server = smtplib.SMTP(host, port)
-            server.starttls()
-            server.login(fromaddr, password)
-            text = msg.as_string()
-            toaddrs = toaddr
-            retorno = server.sendmail(fromaddr, toaddrs, text)
-            #print('email: ', fromaddr, toaddrs, text)
-            server.quit()
-            return retorno
-        except Exception as error:
-            utc_dt = datetime.now(timezone.utc)
-            dataErro = utc_dt.astimezone(AMSP)
-            grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
+def salvar_imagem_base64_diretorio(imagem_base64):
+    # Gerar um nome de arquivo único
+    if imagem_base64 != '' and imagem_base64 != None:
+        nome_arquivo = f"{uuid.uuid4()}.png"
+        diretorio = f"/data/plataforma/image"
+        os.makedirs(diretorio, exist_ok=True)
+        caminho_arquivo = f"{diretorio}/{nome_arquivo}"
+        
+        # Decodificar a imagem base64 e salvar no sistema de arquivos
+        with open(caminho_arquivo, "wb") as arquivo_imagem:
+            arquivo_imagem.write(base64.b64decode(imagem_base64))
+        
+        return caminho_arquivo
+    else:
+        return ''

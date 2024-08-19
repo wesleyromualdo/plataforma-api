@@ -288,7 +288,7 @@ class StopTarefa(BaseModel):
 class TarefaHistoricoPOST(BaseModel):
     tarefa_id: int
     automacao_id: Optional[int] = None
-    nu_cpf: str
+    nu_cpf: Optional[str] = ''
     dt_inicio: Optional[datetime] = None
     dt_fim: Optional[datetime] = None
     bo_status_code: Optional[int] = None
@@ -321,11 +321,11 @@ class LogsPOST(BaseModel):
     tx_status: Optional[str] = ''
     tx_descricao: Optional[str] = ''
     tx_json: Optional[str] = ''
+    tx_imagem: Optional[str] = ''
     class Config:
         orm_mode = True
 
 class LogsElastic(BaseModel):
-    url: Optional[str] = ''
     index_name: Optional[str] = ''
     json_dados: Optional[Dict[str, Any]] = None
     class Config:
@@ -365,7 +365,15 @@ class DadoNegocialLista(DadoNegocial):
 class ControleExecucaoPOST(BaseModel):
     tarefa_id: int
     tx_descricao: Optional[str] = ''
+    bo_status_code: Optional[int] = None
+    tx_chave: Optional[str] = ''
+    tx_situacao: Optional[str] = ''
+    tx_resumo: Optional[str] = ''
+    tx_tempo: Optional[str] = ''
+    dt_inicio: Optional[datetime] = None
+    dt_fim: Optional[datetime] = None
     tx_json: Optional[str] = ''
+    tx_imgbase64: Optional[str] = ''
     class Config:
         orm_mode = True
 
@@ -429,6 +437,7 @@ class ConfiguracaoPOST(BaseModel):
     tarefa_id: int
     tx_chave: Optional[str] = ''
     tx_valor: Optional[str] = ''
+    num_ordem: Optional[str] = ''
     class Config:
         orm_mode = True
 

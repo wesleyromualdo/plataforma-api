@@ -36,6 +36,16 @@ class RepositorioTarefa():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
+    async def carrega_tarefa_cliente(self, cliente_id: int):
+        try:
+            stmt = select(models.Tarefa).where(models.Tarefa.cliente_id == cliente_id).where(models.Tarefa.bo_status == True)
+            db_orm = self.db.execute(stmt).all()
+            return db_orm
+        except:
+            utc_dt = datetime.now(timezone.utc)
+            dataErro = utc_dt.astimezone(AMSP)
+            utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
+
     async def get_tarefa_by_automacao_id(self, automacao_id: int):
         try:
             j = join(models.Tarefa, models.Automacao, models.Tarefa.automacao_id == models.Automacao.id)
@@ -362,18 +372,31 @@ class RepositorioTarefa():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_historico_tarefa_by_tarefa_all(self, tarefa_id: int):
+    async def get_historico_tarefa_by_tarefa_all(self, tarefa_id: int, historico_id:int, dt_inicio:str, pagina:str, tamanho_pagina:str):
         try:
             #stmt = select(models.TarefaHistorico).where(models.TarefaHistorico.tarefa_id == tarefa_id).order_by(models.TarefaHistorico.id.desc())
             #db_orm = self.db.execute(stmt).scalars().all()
+
+            total_registros = 10
+            if pagina != '':
+                total_sql = f"""SELECT COUNT(th.id) FROM tarefa_historico th 
+                            WHERE th.tarefa_id = {tarefa_id}
+                                {f"AND to_char(th.dt_inicio, 'DD/MM/YYYY às HH24:MI:SS') ILIKE '%{dt_inicio}%'" if dt_inicio != '' else ""}"""
+                
+                total_registros = self.db.execute(total_sql).scalars().first()
+
             sql = f"""SELECT th.*, a.tx_nome as worker FROM tarefa_historico th 
                         LEFT JOIN automacao a ON a.id = th.automacao_id 
                     WHERE th.tarefa_id = {tarefa_id}
-                    ORDER BY th.id DESC"""
+                        {f"AND to_char(th.dt_inicio, 'DD/MM/YYYY às HH24:MI:SS') ILIKE '%{dt_inicio}%'" if dt_inicio != '' else ""}
+                        {f"AND th.id = {historico_id}" if historico_id != '' else ""}
+                    ORDER BY th.id DESC
+                    {f"OFFSET {int(pagina) * int(tamanho_pagina)} ROWS FETCH NEXT {int(tamanho_pagina)} ROWS ONLY" if pagina != '' else ""}"""
             
             db_orm = self.db.execute(sql).all()
-            return db_orm
+            return {"total": total_registros, "dados": db_orm}
         except:
+            print(traceback.format_exc())
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
@@ -436,39 +459,35 @@ class RepositorioTarefa():
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
     #async def verifica_agendamento_tarefa(self, automacao_id: int):
-    async def verifica_agendamento_tarefa(self, nu_cpf='', nome_worker='', automacao_id = ''):
+    async def verifica_agendamento_tarefa(self, nu_cpf='', nome_worker='', automacao_id = '', tarefa_id = '', bo_iniciar_tarefa = True):
         try:
             today = date.today()
 
-            if automacao_id:
-                sql = f"""SELECT DISTINCT t.id AS tarefa_id, t.cliente_id, t.automacao_id, t.nu_cpf, t.tx_json, t.bo_agendada, t.json_agendamento,
-                        COALESCE(DATEDIFF('second', th.dt_fim::timestamp, now()::timestamp),0) AS segundos,
-	                    COALESCE(DATEDIFF('hour', th.dt_fim::timestamp, now()::timestamp),0) AS horas
-                    FROM tarefa t  
-                        INNER JOIN automacao a ON a.id = t.automacao_id
-                        INNER JOIN automacao_usuario au ON au.automacao_id = a.id 
-                        LEFT JOIN tarefa_historico th ON th.tarefa_id = t.id AND th.id = t.historico_id
-                    WHERE a.id = '{automacao_id}'
-                        AND t.json_agendamento IS NOT NULL
-                        AND t.json_agendamento != ''
-                        AND t.bo_status = TRUE
-                        AND t.bo_execucao = FALSE;"""
-            else:
-                sql = f"""SELECT DISTINCT t.id AS tarefa_id, t.cliente_id, t,automacao_id, t.nu_cpf, t.tx_json, t.bo_agendada, t.json_agendamento,
-                        COALESCE(DATEDIFF('second', th.dt_fim::timestamp, now()::timestamp),0) AS segundos,
-	                    COALESCE(DATEDIFF('hour', th.dt_fim::timestamp, now()::timestamp),0) AS horas
-                    FROM tarefa t  
-                        INNER JOIN automacao a ON a.id = t.automacao_id
-                        INNER JOIN automacao_usuario au ON au.automacao_id = a.id 
-                        LEFT JOIN tarefa_historico th ON th.tarefa_id = t.id AND th.id = t.historico_id
-                    WHERE a.tx_ip_mac = '{nome_worker}'
-                    	--AND au.nu_cpf = '{nu_cpf}'
-                        AND t.json_agendamento IS NOT NULL
-                        AND t.json_agendamento != ''
-                        AND t.bo_status = TRUE
-                        AND t.bo_execucao = FALSE"""
+            filtros = []
+            if automacao_id and automacao_id is not None:
+                filtros.append(f"a.id = {automacao_id}")
+            if tarefa_id and tarefa_id is not None:
+                filtros.append(f"t.id = {tarefa_id}")
+            if nome_worker:
+                filtros.append(f"a.tx_ip_mac = '{nome_worker}'")
+            if nu_cpf:
+                filtros.append(f"au.nu_cpf = '{nu_cpf}'")
+
+            sql = f"""SELECT DISTINCT t.id AS tarefa_id, t.cliente_id, t.automacao_id, t.nu_cpf, t.tx_json, t.bo_agendada, t.json_agendamento,
+                    COALESCE(DATEDIFF('second', th.dt_fim::timestamp, now()::timestamp),0) AS segundos,
+                    COALESCE(DATEDIFF('hour', th.dt_fim::timestamp, now()::timestamp),0) AS horas
+                FROM tarefa t  
+                    INNER JOIN automacao a ON a.id = t.automacao_id
+                    INNER JOIN automacao_usuario au ON au.automacao_id = a.id 
+                    LEFT JOIN tarefa_historico th ON th.tarefa_id = t.id AND th.id = t.historico_id
+                WHERE t.json_agendamento IS NOT NULL
+                    {f"AND {' AND '.join(filtros)}" if len(filtros) > 0 else ""}
+                    AND t.json_agendamento != ''
+                    AND t.bo_status = TRUE
+                    AND t.bo_execucao = FALSE;"""            
             artarefas = self.db.execute(sql).all()
 
+            retorno = False
             for tarefas in artarefas:
                 if tarefas is not None and tarefas['bo_agendada'] is True and tarefas['segundos'] > 60 and tarefas['json_agendamento'] is not None:
                     try:
@@ -481,10 +500,14 @@ class RepositorioTarefa():
 
                     if (int(tarefas['segundos']) < 1 or int(tarefas['segundos']) > 59):
                         if (agendamento['repetir'] is False or agendamento['repetir'] == 'false') and str(today) == agendamento['datafim']:
-                            await self.verifica_tipo_agendamento(tarefas, agendamento)
+                            retorno = await self.verifica_tipo_agendamento(tarefas, agendamento)
                         else:
                             if (agendamento['repetir'] is True or agendamento['repetir'] == 'true'):
-                                await self.verifica_tipo_agendamento(tarefas, agendamento)
+                                retorno = await self.verifica_tipo_agendamento(tarefas, agendamento)
+
+                    if retorno is True and bo_iniciar_tarefa is True:
+                        await self.iniciar_tarefa(tarefas)                    
+            return retorno
         except Exception as error:
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
@@ -513,19 +536,21 @@ class RepositorioTarefa():
             #if (agendamento['repetirhora'] is True or agendamento['repetirhora'] == 'true') and (tarefa['horas'] > 0 or str(hora[-2:]) == '00'):
             if (agendamento['repetirhora'] is True or agendamento['repetirhora'] == 'true') and tarefa['horas'] > 0:
                 if hora in agendamento['agenda']:
-                    await self.iniciar_tarefa(tarefa)
+                    return True
             else:
                 if (agendamento['repetir'] is True or agendamento['repetir'] == 'true') and tarefa['horas'] > 0:
                     if hora in agendamento['agenda']:
-                        await self.iniciar_tarefa(tarefa)
+                        return True
                 else:
                     datafim = datetime.strptime(agendamento['datafim'], "%Y-%m-%d")
                     if hora in agendamento['agenda'] and data == datafim:
-                        await self.iniciar_tarefa(tarefa)
+                        return True
+            return False
         except Exception as error:
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
+            return False
 
     async def agendamento_semanal(self, tarefa, agendamento):
         try:
@@ -543,11 +568,12 @@ class RepositorioTarefa():
                 #if (agendamento['repetir'] is True or agendamento['repetir'] == 'true') and tarefa['horas'] > 0:
                 if (agendamento['repetir'] is True or agendamento['repetir'] == 'true'):
                     if agenda['semana'] == nomes[dia_semana] and hora in agenda['hora']:
-                        await self.iniciar_tarefa(tarefa)
+                        return True
                 else:
                     datafim = datetime.strptime(agendamento['datafim'], "%Y-%m-%d")
                     if agenda['semana'] == nomes[dia_semana] and hora in agenda['hora'] and data == datafim:
-                        await self.iniciar_tarefa(tarefa)
+                        return True
+            return False
         except Exception as error:
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
@@ -567,10 +593,11 @@ class RepositorioTarefa():
                 datafim = datetime.strptime(agenda['mensal'], "%Y-%m-%d")
                 if (agendamento['repetir'] is True or agendamento['repetir'] == 'true'):
                     if hora in agenda['hora']:
-                        await self.iniciar_tarefa(tarefa)
+                        return True
                 else:
                     if datafim == data and hora in agenda['hora']:
-                        await self.iniciar_tarefa(tarefa)
+                        return True
+            return False
         except Exception as error:
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
@@ -596,8 +623,10 @@ class RepositorioTarefa():
     async def iniciar_tarefa(self, orm: schemas.IniciaTarefa):
         try:
             tx_ip_mac = ''
+            tx_situacao = 'Aguardando'
             if orm.execucao == 'manual' and orm.execucao is not None:
                 tx_ip_mac = orm.tx_ip_mac
+                tx_situacao = 'Em Execução'
             
             if (tx_ip_mac == '' or tx_ip_mac is None) and orm.cliente_id is not None and orm.automacao_id is not None:
                 automacao = await self.pega_automacao_espera(orm.automacao_id, orm.cliente_id)
@@ -622,7 +651,7 @@ class RepositorioTarefa():
                 bo_execucao = True,
                 historico_id = db_orm.id,
                 tx_json = orm.tx_json,
-                tx_situacao = 'Aguardando'
+                tx_situacao = tx_situacao
             )
             self.db.execute(stmt)
             self.db.commit()
@@ -834,20 +863,16 @@ class RepositorioTarefa():
 
     async def atualiza_historico_tarefa(self, orm: schemas.TarefaHistorico):
         try:
-            if orm.tarefa_id:
-                param = "tarefa_id={orm.tarefa_id}"
-            
-
-            sql = """UPDATE public.tarefa_historico SET tarefa_id=0, nu_cpf='', dt_inicio=now(), dt_fim='', bo_status_code=0, tx_resumo='', tx_json='', tx_ip_execucao=''
-                    WHERE id={orm.id}
-                    """
             stmt = update(models.TarefaHistorico).where(models.TarefaHistorico.id == orm.id).values(
-                tx_nome = orm.tx_nome,
+                tarefa_id = orm.tarefa_id,
                 nu_cpf = orm.nu_cpf,
                 automacao_id = orm.automacao_id,
-                bo_status = orm.bo_status,
-                bo_execucao = orm.bo_execucao,
-                bo_agendada = orm.bo_agendada
+                dt_inicio = orm.dt_inicio,
+                dt_fim = orm.dt_fim,
+                bo_status_code = orm.bo_status_code,
+                tx_ip_execucao = orm.tx_ip_execucao,
+                tx_resumo = orm.tx_resumo,
+                tx_json = orm.tx_json
             )
             self.db.execute(stmt)
             self.db.commit()
@@ -857,6 +882,20 @@ class RepositorioTarefa():
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
+
+    async def atualiza_historico_tarefa_txjson(self, orm: schemas.TarefaHistorico):
+        try:
+            stmt = update(models.TarefaHistorico).where(models.TarefaHistorico.id == orm.id).values(
+                tarefa_id = orm.tarefa_id,
+                tx_json = orm.tx_json
+            )
+            self.db.execute(stmt)
+            self.db.commit()
+        except:
+            utc_dt = datetime.now(timezone.utc)
+            dataErro = utc_dt.astimezone(AMSP)
+            utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
+            return traceback.format_exc()
 
     async def delete(self, id: int):
         try:

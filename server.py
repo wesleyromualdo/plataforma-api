@@ -102,7 +102,7 @@ app = FastAPI(title="AUTOMAXIA AUTOMATION", openapi_tags=tags_metadata)
 #socket_manager = SocketManager(app=app)
 # CORS
 
-apm = make_apm_client({
+'''apm = make_apm_client({
     'SERVICE_NAME': 'plataforma-api',
     'SECRET_TOKEN': 'P2JU0etR_1_-rhcmtojcXcCov8s',
     'SERVER_URL': 'http://apm-server.logging.svc.cluster.local:8200',
@@ -111,7 +111,7 @@ apm = make_apm_client({
     'DEBUG': True,
     'LOG_LEVEL': 'DEBUG'
 })
-app.add_middleware(ElasticAPM, client=apm)
+app.add_middleware(ElasticAPM, client=apm)'''
 
 #apm_client = make_apm_client(apm_config)
 #print(apm_client)
@@ -146,11 +146,11 @@ app.add_middleware(
 #pip install -r requirements.txt
 #upgrade-requirements
 
-#pip instalar greenlet
+#pip install greenlet
 #pip install backports.zoneinfo
 
 #alembic init alembic
-#alembic revision --autogenerate -m "Criando tabelas no banco de dados"
+#alembic revision --autogenerate -m "Alterando tabela de configuração"
 #alembic upgrade head
 
 # Gerar chave secreta no gitbash

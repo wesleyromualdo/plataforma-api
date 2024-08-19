@@ -75,6 +75,33 @@ async def carrega_dados_automacao_dashboard(cliente_id: int,
     retorno = await RepositorioTarefa(db).carrega_dados_automacao_dashboard(cliente_id, automacao_id, periodo)
     return retorno
 
+@router.get("/tarefa/agendamento-tarefa", tags=['Tarefa'], status_code=status.HTTP_200_OK)
+async def verifica_agendamento_tarefa(tarefa_id: Optional[str] = Query(default=''),
+                                nu_cpf: Optional[str] = Query(default=''), 
+                                nome_worker: Optional[str] = Query(default=''), 
+                                automacao_id: Optional[str] = Query(default=''), 
+                                db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+    
+    retorno = await RepositorioTarefa(db).verifica_agendamento_tarefa(nu_cpf, nome_worker, automacao_id, tarefa_id, False)
+    return retorno
+    
+@router.get("/tarefa-historico", tags=['Tarefa'], status_code=status.HTTP_200_OK)
+async def pegar_historico_tarefa(tarefa_id: int = Query(...), 
+                                historico_id: Optional[str] = Query(default=''),
+                                dt_inicio: Optional[str] = Query(default=''),
+                                pagina: Optional[str] = Query(default=None),
+                                tamanho_pagina: Optional[str] = Query(default=None),
+                                db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+    retorno = await RepositorioTarefa(db).get_historico_tarefa_by_tarefa_all(tarefa_id, historico_id, dt_inicio, pagina, tamanho_pagina)
+    if not retorno:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para a tarefa de id: {tarefa_id} informado!')
+    return retorno
+
+@router.get("/tarefa/cliente/{cliente_id}", tags=['Tarefa'], status_code=status.HTTP_200_OK)
+async def carrega_tarefa_cliente(cliente_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+    retorno = await RepositorioTarefa(db).carrega_tarefa_cliente(cliente_id)
+    return retorno
+
 @router.post("/tarefa/", tags=['Tarefa'], status_code=status.HTTP_201_CREATED)
 async def inserir_tarefa(model: schemas.TarefaPOST, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     try:
@@ -221,13 +248,6 @@ async def pegar_tarefa_by_constante_virtual(constante_virtual: str, db: Session 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para a constante virtual: {constante_virtual} informado!')
     return retorno
 
-@router.get("/tarefa/historico/{tarefa_id}", tags=['Tarefa'], status_code=status.HTTP_200_OK)
-async def pegar_historico_tarefa(tarefa_id: int, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
-    retorno = await RepositorioTarefa(db).get_historico_tarefa_by_tarefa_all(tarefa_id)
-    if not retorno:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para a tarefa de id: {tarefa_id} informado!')
-    return retorno
-
 @router.get("/tarefa/historico_by_usuario/{nu_cpf}/{bo_agendada}", tags=['Tarefa'], status_code=status.HTTP_200_OK)
 async def pegar_historico_tarefa_por_usuario(nu_cpf: str, bo_agendada: Optional[bool] = Query(default=None), db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     retorno = await RepositorioTarefa(db).get_historico_tarefa_by_usuario(nu_cpf, bo_agendada)
@@ -251,7 +271,14 @@ async def grava_historico_tarefa(model: schemas.TarefaHistoricoPOST, db: Session
 async def atualiza_historico_tarefa(model: schemas.TarefaHistorico, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
     retorno = await RepositorioTarefa(db).atualiza_historico_tarefa(model)
     if not retorno:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para a tarefa de id: {historico_tarefa_id} informado!')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para a tarefa de id: {model.id} informado!')
+    return retorno
+
+@router.put("/tarefa/historico-tarefa/tx-json", tags=['Tarefa'], status_code=status.HTTP_200_OK)
+async def atualiza_historico_tarefa_json(model: schemas.TarefaHistorico, db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+    retorno = await RepositorioTarefa(db).atualiza_historico_tarefa_txjson(model)
+    if not retorno:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro para a tarefa de id: {model.id} informado!')
     return retorno
 
 @router.get("/tarefa/historico/automacao/{automacao_id}", tags=['Tarefa'], status_code=status.HTTP_200_OK)
