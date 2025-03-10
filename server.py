@@ -4,7 +4,7 @@ from fastapi.responses import PlainTextResponse
 
 from src.routers import (route_auth, route_dados_negocial, route_worker, route_logs, route_menu, 
     route_perfil, route_cliente, route_tarefa, route_usuario, route_automacao, route_util, route_script,
-    route_arquivos, route_controleexecucao, route_cofresenha, route_configuracao)
+    route_arquivos, route_controleexecucao, route_cofresenha, route_configuracao, route_kafka)
 
 from src.jobs.write_notification import write_notification
 #from fastapi_socketio import SocketManager
@@ -86,6 +86,10 @@ tags_metadata = [
     {
         "name": "Configuração",
         "description": "Este serviço tem o objetivo gerar variaveis de configuração para a aplicação",
+    },
+    {
+        "name": "Kafka",
+        "description": "Este serviço tem o objetivo consumer e producer de mensagens no Kafka",
     }
 ]
 
@@ -98,7 +102,7 @@ except requests.exceptions.RequestException as err:
 else:
     print("URL check succeeded.")'''
 
-app = FastAPI(title="AUTOMAXIA AUTOMATION", openapi_tags=tags_metadata)
+app = FastAPI(title="PLATAFORMA AUTOMAXIA", openapi_tags=tags_metadata)
 #socket_manager = SocketManager(app=app)
 # CORS
 
@@ -125,6 +129,7 @@ origins = [
     "http://plataforma.automaxia.com.br",
     "http://plataforma-web.automaxia.com.br",
     "http://plataforma-api.automaxia.com.br",
+    "https://plataforma-web.automaxia.com.br",
     "https://plataforma-api.automaxia.com.br"
 ]
 app.add_middleware(
@@ -197,6 +202,8 @@ app.include_router(route_controleexecucao.router)
 app.include_router(route_cofresenha.router)
 
 app.include_router(route_configuracao.router)
+
+app.include_router(route_kafka.router)
 
 '''@app.get("/external-service")
 async def call_external_service():

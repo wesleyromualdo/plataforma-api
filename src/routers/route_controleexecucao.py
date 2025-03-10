@@ -44,7 +44,7 @@ async def listar_todos(tarefa_id: Optional[str] = Query(default=None),
     return retorno
 
 @router.get("/controleexecucao/dash", tags=['Controle Execução'], status_code=status.HTTP_200_OK)
-async def listar_todos(tarefa_id: Optional[str] = Query(default=None),
+async def listar_todos_dash(tarefa_id: Optional[str] = Query(default=None),
                        cliente_id: Optional[str] = Query(default=None),
                         tx_chave: Optional[str] = Query(default=None, max_length=200),
                         dt_inicio: Optional[str] = Query(default=None),

@@ -4,7 +4,7 @@ from src.sqlalchemy.models import models
 from src.schemas import schemas
 import os, json
 import traceback
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, time
 import pytz
 from tzlocal import get_localzone
 from src.utils import utils
@@ -147,7 +147,8 @@ class RepositorioTarefa():
                                 result['agendamento'] = data_formatada+' às '+str(int(horas[0])+1)+':00'
                             else:
                                 for agenda in agendamento['agenda']:
-                                    if int(agenda.split(':')[0]) > int(horas[0]) and dataFim >= dataDate:
+                                    #if int(agenda.split(':')[0]) >= int(horas[0]) and dataFim >= dataDate:
+                                    if time(int(horas[0]), int(horas[1])) < time(int(agenda.split(':')[0]), int(agenda.split(':')[1])) and dataFim >= dataDate:
                                         result['agendamento'] = data_formatada+' às '+agenda
                                         break
                         if agendamento['cronograma'] == 'semanal':
@@ -178,6 +179,7 @@ class RepositorioTarefa():
                 arDados.append(result)
             return arDados
         except:
+            print(traceback.format_exc())
             utc_dt = datetime.now(timezone.utc)
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
@@ -486,7 +488,7 @@ class RepositorioTarefa():
                     AND t.bo_status = TRUE
                     AND t.bo_execucao = FALSE;"""            
             artarefas = self.db.execute(sql).all()
-
+            
             retorno = False
             for tarefas in artarefas:
                 if tarefas is not None and tarefas['bo_agendada'] is True and tarefas['segundos'] > 60 and tarefas['json_agendamento'] is not None:
@@ -497,7 +499,7 @@ class RepositorioTarefa():
                         dataErro = utc_dt.astimezone(AMSP)
                         utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
                         #return {'detail': 'Converter json do agendamento: '+str(traceback.format_exc())}
-
+                    
                     if (int(tarefas['segundos']) < 1 or int(tarefas['segundos']) > 59):
                         if (agendamento['repetir'] is False or agendamento['repetir'] == 'false') and str(today) == agendamento['datafim']:
                             retorno = await self.verifica_tipo_agendamento(tarefas, agendamento)
@@ -529,7 +531,7 @@ class RepositorioTarefa():
 
             data = datetime.strptime(utc_dt.astimezone(AMSP).strftime("%Y-%m-%d"), "%Y-%m-%d")
             hora = utc_dt.astimezone(AMSP).strftime("%H:%M")
-            
+            #print(hora, agendamento['agenda'])
             if 'agenda' not in agendamento:
                 return {'detail': 'Atributo inválido: agenda - '+str(agendamento)}
             
@@ -538,7 +540,7 @@ class RepositorioTarefa():
                 if hora in agendamento['agenda']:
                     return True
             else:
-                if (agendamento['repetir'] is True or agendamento['repetir'] == 'true') and tarefa['horas'] > 0:
+                if (agendamento['repetir'] is True or agendamento['repetir'] == 'true'):
                     if hora in agendamento['agenda']:
                         return True
                 else:

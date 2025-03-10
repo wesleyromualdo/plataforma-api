@@ -1,4 +1,4 @@
-from sqlalchemy import select, update, join
+from sqlalchemy import select, update, join, Date
 from sqlalchemy.orm import Session
 from src.sqlalchemy.models import models
 from src.schemas import schemas
@@ -64,25 +64,21 @@ class RepositorioControleExecucao():
             dataErro = utc_dt.astimezone(AMSP)
             utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
 
-    async def get_by_tarefa(self, tarefa_id: int):
-        try:
-            stmt = select(models.ControleExecucao).where(models.ControleExecucao.tarefa_id == tarefa_id).where(models.ControleExecucao.bo_status == True)
-            db_orm = self.db.execute(stmt).scalars().all()
-            return db_orm
-        except:
-            utc_dt = datetime.now(timezone.utc)
-            dataErro = utc_dt.astimezone(AMSP)
-            utils.grava_error_arquivo({"error": f"""{traceback.format_exc()}""","data": str(dataErro)})
-
     async def get_all(self, tarefa_id, tx_chave, tx_descricao, bo_status, pagina, tamanho_pagina):
         try:
+            utc_dt = datetime.now(timezone.utc)
+            data_atual = utc_dt.astimezone(AMSP)
             result = self.db.query(models.ControleExecucao)
+            data_atual_formatada = data_atual.strftime('%Y-%m-%d')
             
             if tx_chave:
                 result = result.filter(models.ControleExecucao.tx_chave == tx_chave)
 
             if tx_descricao:
-                result = result.filter(models.ControleExecucao.tx_descricao == tx_descricao)
+                result = result.filter(
+                    models.ControleExecucao.tx_resumo.ilike(f"%{tx_descricao}%"),
+                    models.ControleExecucao.dt_cadastro.cast(Date) == data_atual_formatada
+                )
 
             if tarefa_id:
                 result = result.filter(models.ControleExecucao.tarefa_id == tarefa_id)
@@ -90,8 +86,10 @@ class RepositorioControleExecucao():
             if str(bo_status) and bo_status is not None:
                 result = result.filter(models.ControleExecucao.bo_status == bo_status)
 
+            result = result.order_by(models.ControleExecucao.dt_cadastro.desc())
+
             if tamanho_pagina > 0:
-                result.offset(pagina).limit(tamanho_pagina)
+                result = result.offset(int(pagina) * int(tamanho_pagina)).limit(tamanho_pagina)
             
             return result.all()
         except Exception as error:
@@ -108,7 +106,7 @@ class RepositorioControleExecucao():
                 filtros.append(f" AND c.tx_chave = '{tx_chave}'")
 
             if tx_descricao:
-                filtros.append(f" AND c.tx_descricao = '{tx_descricao}'")
+                filtros.append(f" AND c.tx_resumo ilike '%{tx_descricao}%'")
 
             if tarefa_id:
                 filtros.append(f" AND c.tarefa_id = {tarefa_id}")
@@ -120,10 +118,10 @@ class RepositorioControleExecucao():
                 filtros.append(f" AND c.dt_cadastro BETWEEN to_timestamp('{dt_inicio} 00:00:00', 'YYYY-MM-DD HH24:MI:SS') AND to_timestamp('{dt_fim} 23:59:59', 'YYYY-MM-DD HH24:MI:SS')")
             else:
                 if dt_inicio:
-                    filtros.append(f" AND c.dt_cadastro = to_timestamp('{dt_inicio} 00:00:00', 'YYYY-MM-DD HH24:MI:SS')")
+                    filtros.append(f" AND c.dt_cadastro::date = '{dt_inicio}'::date")
 
                 if dt_fim:
-                    filtros.append(f" AND c.dt_cadastro = to_timestamp('{dt_fim} 00:00:00', 'YYYY-MM-DD HH24:MI:SS')")
+                    filtros.append(f" AND c.dt_cadastro::date = '{dt_fim}'::date")
 
                 #WHERE th.dt_inicio BETWEEN to_timestamp('{dt_inicio} 00:00:00', 'YYYY-MM-DD HH24:MI:SS') AND to_timestamp('{dt_fim} 23:59:59', 'YYYY-MM-DD HH24:MI:SS')
 
@@ -140,16 +138,16 @@ class RepositorioControleExecucao():
                 paginacao = f"LIMIT {tamanho_pagina} OFFSET {offset}"
 
             sql = f"""WITH max_dt_cadastro AS (
-                        SELECT tx_chave, MAX(dt_cadastro) AS max_dt
+                        SELECT tx_chave, tarefa_id, MAX(dt_cadastro) AS max_dt
                         FROM public.controle_execucao
-                        GROUP BY tx_chave
+                        GROUP BY tx_chave, tarefa_id
                     )
                     SELECT c.id, c.tarefa_id, t.tx_nome, c.tx_descricao, c.dt_cadastro, to_char(c.dt_cadastro, 'DD/MM/YYYY HH24:MI:SS') AS dt_cadastro_formata, 
                         c.bo_status, c.tx_json, c.bo_status_code, c.tx_chave, c.tx_situacao, c.tx_resumo, 
                         TO_CHAR(c.tx_tempo::INTERVAL, 'HH24:MI:SS') AS tempo_formatado, c.dt_inicio, c.dt_fim, c.tx_imgbase64 
                     FROM controle_execucao c
                         INNER JOIN tarefa t ON t.id = c.tarefa_id  
-                        INNER JOIN max_dt_cadastro mdc ON c.tx_chave = mdc.tx_chave AND c.dt_cadastro = mdc.max_dt
+                        INNER JOIN max_dt_cadastro mdc ON c.tx_chave = mdc.tx_chave AND mdc.tarefa_id = t.id AND c.dt_cadastro = mdc.max_dt
                     WHERE c.bo_status = TRUE
                         AND t.cliente_id = {cliente_id}
                     {''.join(filtros)}

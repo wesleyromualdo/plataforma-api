@@ -46,7 +46,7 @@ async def pegar_relatorio_mensal_historico_tarefa(cliente_id: Optional[str] = Qu
                                                   tarefa_id: Optional[str] = Query(default=None),
                                                   dt_inicio: Optional[str] = Query(default=None),
                                                   dt_fim: Optional[str] = Query(default=None), 
-                                                  db: Session = Depends(get_db), usuario = Depends(obter_usuario_logado)):
+                                                  db: Session = Depends(get_db)):
     retorno = await RepositorioLogs(db).pegar_relatorio_mensal_historico_tarefa(cliente_id, tarefa_id, dt_inicio,dt_fim)
     if not retorno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Não foi encontrado nenhum registro de historico para os filtros informado!')

@@ -1,7 +1,7 @@
 import random
 import string
 
-tamanho = 8
+tamanho = 10
 valores = string.ascii_letters
 senha = ''
 for i in range(tamanho):

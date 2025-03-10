@@ -39,8 +39,7 @@ class RepositorioLogs():
             total_registros = result.count()
 
             if tamanho_pagina > 0:
-                result = result.offset(pagina).limit(tamanho_pagina)
-            
+                result = result.offset(int(pagina) * int(tamanho_pagina)).limit(tamanho_pagina)
             
             return {"total": total_registros, "dados": result.all()}
         except:
@@ -115,43 +114,89 @@ class RepositorioLogs():
             if tarefa_id:
                 filtros.append(f" AND t.id = {tarefa_id}")
 
+            ''' resultado = {
+                "preco_total": (float(total_minutos) * 0.30),
+                "minutos": float("{:.2f}".format(total_minutos)),
+                "minutos_sucesso": float("{:.2f}".format(minutos_sucesso)),
+                "minutos_erro": float("{:.2f}".format(minutos_erro)),
+                "qtd_execucao_sucesso": qtd_execucao_sucesso,
+                "qtd_execucao_error": qtd_execucao_error,
+                "qtd_execucoes": qtd_execucoes,
+                "percentual_sucesso": "{:.2f}".format(percentual_sucesso),
+                "percentual_erro": "{:.2f}".format(percentual_erro),
+                "maior_tempo": float("{:.2f}".format(maior_tempo)),
+                "menor_tempo": float("{:.2f}".format(menor_tempo)),
+                "tempo_medio_execucao": float("{:.2f}".format(tempo_medio_execucao))
+            }'''
+
             sql = f"""SELECT
                             (sum(total_minutos) * 0.30) AS preco_total,
                             CEIL(sum(total_minutos)) AS minutos,
-                            CEIL(sum(minutos_sucesso)) AS minutos_sucesso,
-                            CEIL(sum(minutos_erro)) AS minutos_erro,
+                            CEIL(sum(segundos_sucesso)) AS minutos_sucesso,
+                            CEIL(sum(segundos_erro)) AS minutos_erro,
                             sum(execucao_sucesso) AS qtd_execucao_sucesso,
                             sum(execucao_error) AS qtd_execucao_error,
                             sum(execucoes) AS qtd_execucoes,
                             to_char((CASE WHEN sum(execucoes) > 0 THEN (100 * sum(execucao_sucesso)) / sum(execucoes) ELSE 0 END), 'FM999999990.00') AS percentual_sucesso,
                             to_char((CASE WHEN sum(execucoes) > 0 THEN (100 * sum(execucao_error)) / sum(execucoes) ELSE 0 END), 'FM999999990.00') AS percentual_erro,
-                            min(total_minutos) AS total_minutes,
-                            max(total_minutos) AS maior_tempo,
-                            min(total_minutos) AS menor_tempo,
-                            TO_CHAR(((sum(total_minutos) ) / sum(execucoes)), 'FM999999999.00') AS tempo_medio_execucao
+                            max((total_minutos)) AS maior_tempo,
+                            min((total_minutos)) AS menor_tempo,
+                            ROUND(((sum(total_minutos) ) / sum(execucoes))) AS tempo_medio_execucao
                         FROM(
-                            SELECT th.id AS historico, t.id, t.tx_nome, th.dt_fim::timestamp, th.dt_inicio::timestamp,
-                                ROUND(COALESCE(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp)),1)) AS total_segundos,
-                                CASE WHEN ROUND(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp))/60) > 0 
-                                    THEN ROUND(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp))/60) ELSE 1 END AS total_minutos,
-                                ROUND(CASE WHEN th.bo_status_code >= 200 AND th.bo_status_code <= 299 THEN CASE WHEN ROUND(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp))/60) > 0 
-                                    THEN ROUND(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp))/60) ELSE 1 END ELSE 0 END) AS minutos_sucesso,
-                                ROUND(CASE WHEN th.bo_status_code > 299 THEN CASE WHEN ROUND(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp))/60) > 0 
-                                    THEN ROUND(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp))/60) ELSE 1 END ELSE 0 END) AS minutos_erro,
-                                th.bo_status_code,
-                                CASE WHEN th.bo_status_code >= 200 AND th.bo_status_code <= 299 THEN 1 ELSE 0 END execucao_sucesso,
-                                CASE WHEN th.bo_status_code > 299 THEN 1 ELSE 0 END execucao_error,
-                                count(th.id) AS execucoes
-                            FROM public.tarefa_historico th 
-                                INNER JOIN public.tarefa t ON t.id = th.tarefa_id
-                        WHERE th.dt_inicio BETWEEN to_timestamp('{dt_inicio} 00:00:00', 'YYYY-MM-DD HH24:MI:SS') AND to_timestamp('{dt_fim} 23:59:59', 'YYYY-MM-DD HH24:MI:SS')
-                            AND t.cliente_id = {cliente_id}
-                            AND th.dt_fim IS NOT NULL
-                            {''.join(filtros)}
-                        GROUP BY th.bo_status_code, th.dt_fim, th.dt_inicio, t.id, t.tx_nome,th.id
-                    ) AS foo"""
+                            WITH log_error AS (
+                                SELECT DISTINCT historico_tarefa_id FROM public.logs l 
+                                WHERE l.tx_status in ('error')
+                                GROUP BY historico_tarefa_id
+                            ),
+                            log_sucesso AS (
+                                SELECT historico_tarefa_id FROM public.logs l 
+                                WHERE l.tx_status NOT IN ('error')
+                                    AND l.historico_tarefa_id NOT IN ( SELECT historico_tarefa_id FROM public.logs l 
+                                        WHERE l.tx_status in ('error'))
+                                GROUP BY historico_tarefa_id
+                            ),
+                            dados_execucao AS (
+                                SELECT l.historico_tarefa_id, min(l.dt_inclusao) AS dt_inicio, max(l.dt_inclusao) AS dt_fim,
+                                    ROUND(COALESCE(EXTRACT(EPOCH FROM (max(l.dt_inclusao)::timestamp - min(l.dt_inclusao)::timestamp)),1)) AS total_segundos,
+                                    CASE WHEN ROUND(EXTRACT(EPOCH FROM (max(l.dt_inclusao)::timestamp - min(l.dt_inclusao)::timestamp))/60) > 0
+                                        THEN ROUND(EXTRACT(EPOCH FROM (max(l.dt_inclusao)::timestamp - min(l.dt_inclusao)::timestamp))/60) ELSE 1 
+                                    END AS total_minutos,
+                                    CASE WHEN count(ls.historico_tarefa_id) > 0 THEN ROUND(COALESCE(EXTRACT(EPOCH FROM (max(l.dt_inclusao)::timestamp - min(l.dt_inclusao)::timestamp)),1)/60) ELSE 0 END segundos_sucesso,
+                                    CASE WHEN count(le.historico_tarefa_id) > 0 THEN ROUND(COALESCE(EXTRACT(EPOCH FROM (max(l.dt_inclusao)::timestamp - min(l.dt_inclusao)::timestamp)),1)/60) ELSE 0 END segundos_erro,
+                                    CASE WHEN count(ls.historico_tarefa_id) > 0 THEN 1 ELSE 0 END execucao_sucesso,
+                                    CASE WHEN count(le.historico_tarefa_id) > 0 THEN 1 ELSE 0 END execucao_error
+                                FROM logs l 
+                                    LEFT JOIN log_sucesso ls ON ls.historico_tarefa_id = l.historico_tarefa_id
+                                    LEFT JOIN log_error le ON le.historico_tarefa_id = l.historico_tarefa_id
+                                --WHERE l.historico_tarefa_id = 6160
+                                GROUP BY l.historico_tarefa_id
+                            )
+                            SELECT th.id AS historico, t.id, t.tx_nome, /*th.dt_fim::timestamp, th.dt_inicio::timestamp,
+                                    ROUND(COALESCE(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp)),1)) AS total_segundos,
+                                    CASE WHEN ROUND(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp))/60) > 0
+                                        THEN ROUND(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp))/60) ELSE 1 END AS total_minutos,
+                                    ROUND(CASE WHEN th.bo_status_code >= 200 AND th.bo_status_code <= 299 THEN CASE WHEN ROUND(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp))/60) > 0
+                                        THEN ROUND(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp))/60) ELSE 1 END ELSE 0 END) AS minutos_sucesso,
+                                    ROUND(CASE WHEN th.bo_status_code > 299 THEN CASE WHEN ROUND(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp))/60) > 0      
+                                        THEN ROUND(EXTRACT(EPOCH FROM (th.dt_fim::timestamp - th.dt_inicio::timestamp))/60) ELSE 1 END ELSE 0 END) AS minutos_erro,
+                                    th.bo_status_code,
+                                    CASE WHEN th.bo_status_code >= 200 AND th.bo_status_code <= 299 THEN 1 ELSE 0 END execucao_sucesso,
+                                    CASE WHEN th.bo_status_code > 299 THEN 1 ELSE 0 END execucao_error,*/
+                                    de.dt_inicio, de.dt_fim, de.total_segundos, de.segundos_sucesso, de.segundos_erro, de.execucao_sucesso, de.execucao_error, de.total_minutos,
+                                    count(th.id) AS execucoes
+                                FROM public.tarefa_historico th
+                                    INNER JOIN public.tarefa t ON t.id = th.tarefa_id
+                                    INNER JOIN dados_execucao de ON de.historico_tarefa_id = th.id
+                                WHERE th.dt_inicio BETWEEN to_timestamp('{dt_inicio} 00:00:00', 'YYYY-MM-DD HH24:MI:SS') AND to_timestamp('{dt_fim} 23:59:59', 'YYYY-MM-DD HH24:MI:SS')
+                                    AND t.cliente_id = {cliente_id}
+                                    AND th.dt_fim IS NOT NULL
+                                    {''.join(filtros)}
+                                GROUP BY th.bo_status_code, th.dt_fim, th.dt_inicio, t.id, t.tx_nome,th.id,
+	   		                        de.dt_inicio, de.dt_fim, de.total_segundos, de.segundos_sucesso, de.segundos_erro, de.execucao_sucesso, de.execucao_error, de.total_minutos	 
+                            ) AS foo"""
             
-            #resultado = self.db.execute(sql).all()
+            resultado = self.db.execute(sql).all()
+            return resultado
             
             sql = f"""WITH log_error AS (
                         SELECT historico_tarefa_id FROM public.logs l 
@@ -182,7 +227,7 @@ class RepositorioLogs():
                         GROUP BY l.historico_tarefa_id
                     )
                     SELECT th.id AS historico, t.id, t.tx_nome, 
-                            de.dt_inicio, de.dt_fim, de.total_segundos, de.segundos_sucesso, de.segundos_erro, de.execucao_sucesso, de.execucao_error,
+                            de.dt_inicio, de.dt_fim, de.total_segundos, de.total_minutos, de.segundos_sucesso, de.segundos_erro, de.execucao_sucesso, de.execucao_error,
                             count(th.id) AS execucoes
                         FROM public.tarefa_historico th
                             INNER JOIN public.tarefa t ON t.id = th.tarefa_id
@@ -191,9 +236,8 @@ class RepositorioLogs():
                             AND t.cliente_id = {cliente_id}
                             AND th.dt_fim IS NOT NULL
                             {''.join(filtros)}
-                            AND th.dt_fim IS NOT NULL
                         GROUP BY th.bo_status_code, th.dt_fim, th.dt_inicio, t.id, t.tx_nome,th.id,
-                            de.dt_inicio, de.dt_fim, de.total_segundos, de.segundos_sucesso, de.segundos_erro, de.execucao_sucesso, de.execucao_error"""
+                            de.dt_inicio, de.dt_fim, de.total_segundos, de.segundos_sucesso, de.total_minutos, de.segundos_erro, de.execucao_sucesso, de.execucao_error"""
             
             db_orm = self.db.execute(sql).all()
             total_minutos = 0
@@ -207,17 +251,17 @@ class RepositorioLogs():
             tempo_total_execucao = 0
 
             for row in db_orm:
-                total_minutos += row['total_segundos']/60
+                total_minutos += row['total_minutos']
                 minutos_sucesso += row['segundos_sucesso'] / 60
                 minutos_erro += row['segundos_erro'] / 60
                 qtd_execucao_sucesso += row['execucao_sucesso']
                 qtd_execucao_error += row['execucao_error']
                 qtd_execucoes += row['execucoes']
-                tempo_total_execucao += row['total_segundos']
-                if row['total_segundos'] > maior_tempo:
-                    maior_tempo = row['total_segundos']/60
-                if row['total_segundos'] < menor_tempo:
-                    menor_tempo = row['total_segundos']/60
+                tempo_total_execucao += row['total_minutos']
+                if row['total_minutos'] > maior_tempo:
+                    maior_tempo = row['total_minutos']
+                if row['total_minutos'] < menor_tempo:
+                    menor_tempo = row['total_minutos']
 
             percentual_sucesso = ((qtd_execucao_sucesso / qtd_execucoes) * 10000) / 100 if qtd_execucoes > 0 else 0
             percentual_erro = ((qtd_execucao_error / qtd_execucoes) * 10000) / 100 if qtd_execucoes > 0 else 0

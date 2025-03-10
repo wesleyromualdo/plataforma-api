@@ -4,6 +4,19 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 from sqlalchemy.sql import func
 
+class MessageKafka(BaseModel):
+    server: str
+    topic: str
+    message: str
+    client_id: Optional[str] = 'client-automaxia'
+    compression_type: Optional[str] = 'gzip'
+    acks: Optional[str] = 'all'
+
+class TopicKafka(BaseModel):
+    server: str
+    topic: str
+
+
 class ClientePOST(BaseModel):
     tx_sigla: str
     tx_nome: str
